@@ -9,7 +9,7 @@
     "lint": "eslint src/",
     "prepare": "husky",
     "test": "jest",
-    "test:all": "jest --testPathPattern=\"\\.(test|integration\\.test)\\.[jt]sx?$\"",
+    "test:all": "jest",
     "posttest": "git rev-parse HEAD > .test-passed",
     "validate-docs": "node scripts/validate-docs.js --full",
     "generate-docs": "node scripts/generate-docs.js"
