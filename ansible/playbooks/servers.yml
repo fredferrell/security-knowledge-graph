@@ -1,0 +1,32 @@
+# Server-only playbook — skips network devices
+# Usage: ansible-playbook playbooks/servers.yml
+
+- name: Configure common settings on all Ubuntu servers
+  hosts: servers
+  roles:
+    - common
+
+- name: Deploy web server (Apache reverse proxy)
+  hosts: dmz
+  roles:
+    - web-server
+
+- name: Deploy application server (PHP app)
+  hosts: app_tier
+  roles:
+    - app-server
+
+- name: Deploy database server (MariaDB)
+  hosts: db_tier
+  roles:
+    - db-server
+
+- name: Deploy ELK stack
+  hosts: elk-srv
+  roles:
+    - elk
+
+- name: Deploy vulnerable VM
+  hosts: vuln-vm
+  roles:
+    - vuln-vm
