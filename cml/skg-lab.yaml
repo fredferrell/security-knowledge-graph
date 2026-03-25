@@ -54,37 +54,37 @@ nodes:
         type: physical
         slot: 1
 
-  # ── Edge Palo Alto Firewall ──
+  # ── Edge ASAv Firewall ──
   - id: n1
     label: edge-fw
-    node_definition: panos10
-    image_definition: PaloAltoFirewallImage
+    node_definition: asav
+    image_definition: asav-9-20-2
     x: -200
     y: 0
     hide_links: false
     boot_disk_size: null
     cpu_limit: null
-    cpus: 4
+    cpus: null
     data_volume: null
-    ram: 8192
+    ram: 2048
     tags: []
     parameters: {}
     configuration: []
     interfaces:
       - id: i3
-        label: mgmt
+        label: Management0/0
         type: physical
         slot: 0
       - id: i4
-        label: ethernet1/1
+        label: GigabitEthernet0/0
         type: physical
         slot: 1
       - id: i5
-        label: ethernet1/2
+        label: GigabitEthernet0/1
         type: physical
         slot: 2
       - id: i6
-        label: ethernet1/3
+        label: GigabitEthernet0/2
         type: physical
         slot: 3
 
@@ -110,45 +110,45 @@ nodes:
         type: physical
         slot: 0
 
-  # ── Internal Palo Alto Firewall ──
+  # ── Internal ASAv Firewall ──
   - id: n3
     label: internal-fw
-    node_definition: panos10
-    image_definition: PaloAltoFirewallImage
+    node_definition: asav
+    image_definition: asav-9-20-2
     x: 100
     y: 0
     hide_links: false
     boot_disk_size: null
     cpu_limit: null
-    cpus: 4
+    cpus: null
     data_volume: null
-    ram: 8192
+    ram: 2048
     tags: []
     parameters: {}
     configuration: []
     interfaces:
       - id: i8
-        label: mgmt
+        label: Management0/0
         type: physical
         slot: 0
       - id: i9
-        label: ethernet1/1
+        label: GigabitEthernet0/0
         type: physical
         slot: 1
       - id: i10
-        label: ethernet1/2
+        label: GigabitEthernet0/1
         type: physical
         slot: 2
       - id: i11
-        label: ethernet1/3
+        label: GigabitEthernet0/2
         type: physical
         slot: 3
       - id: i12
-        label: ethernet1/4
+        label: GigabitEthernet0/3
         type: physical
         slot: 4
       - id: i13
-        label: ethernet1/5
+        label: GigabitEthernet0/4
         type: physical
         slot: 5
 
@@ -312,9 +312,9 @@ nodes:
     hide_links: false
     boot_disk_size: null
     cpu_limit: null
-    cpus: 4
+    cpus: 2
     data_volume: null
-    ram: 8192
+    ram: 4096
     tags: []
     parameters: {}
     configuration: []
