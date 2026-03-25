@@ -54,6 +54,12 @@ Simulate a new CVE dropping: enter vulnerability details, and the system inserts
 ### Ansible Drift Detection
 Compare Ansible's intended infrastructure state (from inventory) against the actual graph. Detects: missing assets, IP mismatches, zone mismatches. Shows which devices are in sync and which have drifted.
 
+### Risk Analytics
+Graph-based risk scoring using degree centrality, vulnerability counts, credential exposure, and traffic flow analysis. Each asset gets a 0-10 composite risk score. Top risks are surfaced with explanations.
+
+### Security Posture Report
+Comprehensive posture summary: vulnerability matrix (CVE to asset mapping with internet exposure flags), asset risk rankings, credential map, zone-by-zone analysis, and actionable recommendations.
+
 ## Lab Topology
 
 10-device CML enterprise lab across five zones:
@@ -83,7 +89,7 @@ Compare Ansible's intended infrastructure state (from inventory) against the act
 ```bash
 npm install          # Install dependencies
 npm run dev          # Next.js dev server (needs Neo4j running)
-npm test             # Run all tests (137 tests)
+npm test             # Run all tests (193 tests)
 npm run seed         # Seed Neo4j from topology (needs Neo4j running)
 ```
 
@@ -96,3 +102,5 @@ npm run seed         # Seed Neo4j from topology (needs Neo4j running)
 | GET | /api/gaps | Protection gap analysis |
 | POST | /api/simulate/zero-day | Simulate a new zero-day event |
 | GET | /api/drift | Ansible inventory drift detection |
+| GET | /api/analytics | Risk scoring with centrality metrics |
+| GET | /api/report | Full security posture report |
