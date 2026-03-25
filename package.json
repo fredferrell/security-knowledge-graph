@@ -12,7 +12,8 @@
     "test:all": "jest",
     "posttest": "git rev-parse HEAD > .test-passed",
     "validate-docs": "node scripts/validate-docs.js --full",
-    "generate-docs": "node scripts/generate-docs.js"
+    "generate-docs": "node scripts/generate-docs.js",
+    "seed": "npx ts-node --esm scripts/seed-neo4j.ts"
   },
   "dependencies": {
     "neo4j-driver": "^6.0.1",
