@@ -297,6 +297,10 @@ nodes:
         label: port2
         type: physical
         slot: 2
+      - id: i28
+        label: port3
+        type: physical
+        slot: 3
 
   # ── ELK / SIEM Server (Management) ──
   - id: n10
@@ -317,6 +321,52 @@ nodes:
     interfaces:
       - id: i24
         label: ens2
+        type: physical
+        slot: 0
+
+  # ── External Bridge (Edge) ──
+  - id: n12
+    label: ext-edge
+    node_definition: external_connector
+    x: -600
+    y: 0
+    hide_links: false
+    boot_disk_size: null
+    cpu_limit: null
+    cpus: null
+    data_volume: null
+    ram: null
+    tags: []
+    parameters: {}
+    configuration:
+      - name: default
+        content: BRIDGE
+    interfaces:
+      - id: i26
+        label: port
+        type: physical
+        slot: 0
+
+  # ── External Bridge (Management) ──
+  - id: n13
+    label: ext-mgmt
+    node_definition: external_connector
+    x: 600
+    y: 400
+    hide_links: false
+    boot_disk_size: null
+    cpu_limit: null
+    cpus: null
+    data_volume: null
+    ram: null
+    tags: []
+    parameters: {}
+    configuration:
+      - name: default
+        content: BRIDGE
+    interfaces:
+      - id: i27
+        label: port
         type: physical
         slot: 0
 
@@ -441,3 +491,21 @@ links:
     i2: i23
     conditioning: {}
     label: mgmt-vm-ens2<->mgmt-sw-port2
+
+  # ext-edge <-> edge-rtr Gi0/0
+  - id: l11
+    n1: n12
+    i1: i26
+    n2: n0
+    i2: i1
+    conditioning: {}
+    label: ext-edge<->edge-rtr-Gi0/0
+
+  # ext-mgmt <-> mgmt-sw port3
+  - id: l12
+    n1: n13
+    i1: i27
+    n2: n9
+    i2: i28
+    conditioning: {}
+    label: ext-mgmt<->mgmt-sw-port3
