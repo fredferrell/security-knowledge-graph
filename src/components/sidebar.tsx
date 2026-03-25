@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { ZeroDayForm } from './zero-day-form';
 import { DriftPanel } from './drift-panel';
+import { AnalyticsPanel } from './analytics-panel';
+import { ReportPanel } from './report-panel';
 
 interface AffectedAsset {
   name: string;
@@ -49,6 +51,20 @@ interface DriftResults {
   summary: { totalInventory: number; totalGraph: number; inSync: number; drifted: number };
 }
 
+interface AnalyticsResults {
+  assets: { name: string; zone: string; riskScore: number; riskLevel: string; metrics: Record<string, number> }[];
+  topRisks: { name: string; riskScore: number; riskLevel: string; primaryReason: string }[];
+  networkStats: { totalAssets: number; totalVulnerabilities: number; totalTrafficFlows: number; totalCredentials: number; averageRiskScore: number };
+}
+
+interface ReportResults {
+  generatedAt: string;
+  summary: { overallRisk: string; totalAssets: number; totalVulnerabilities: number; protectionCoverage: string; criticalFindings: number };
+  vulnerabilityMatrix: { cveId: string; severity: string; affectedAssets: string[]; exposedToInternet: boolean; firewallProtected: boolean }[];
+  recommendations: string[];
+  credentialMap: { source: string; targets: string[]; credentialTypes: string[] }[];
+}
+
 interface SidebarProps {
   onBlastRadius: (cveId: string) => void;
   onGapAnalysis: () => void;
@@ -61,20 +77,27 @@ interface SidebarProps {
     affectedVersion: string;
   }) => void;
   onCheckDrift: () => void;
+  onRunAnalytics: () => void;
+  onGenerateReport: () => void;
   blastResults: BlastResults | null;
   gapResults: GapResults | null;
   zeroDayResults: ZeroDayResults | null;
   driftResults: DriftResults | null;
+  analyticsResults: AnalyticsResults | null;
+  reportResults: ReportResults | null;
   isSimulating: boolean;
   isDriftLoading: boolean;
+  isAnalyticsLoading: boolean;
+  isReportLoading: boolean;
 }
 
 /** Sidebar with query controls and results panels. */
 export function Sidebar({
   onBlastRadius, onGapAnalysis, onReset,
-  onSimulateZeroDay, onCheckDrift,
+  onSimulateZeroDay, onCheckDrift, onRunAnalytics, onGenerateReport,
   blastResults, gapResults, zeroDayResults, driftResults,
-  isSimulating, isDriftLoading,
+  analyticsResults, reportResults,
+  isSimulating, isDriftLoading, isAnalyticsLoading, isReportLoading,
 }: SidebarProps) {
   const [cveId, setCveId] = useState('CVE-2021-41773');
 
@@ -184,6 +207,22 @@ export function Sidebar({
           {isDriftLoading ? 'Checking...' : 'Check Drift'}
         </button>
         <DriftPanel results={driftResults} isLoading={isDriftLoading} />
+      </div>
+
+      <div className="results-section">
+        <h3 className="results-title">Risk Analytics</h3>
+        <button className="btn btn-primary" onClick={onRunAnalytics} disabled={isAnalyticsLoading}>
+          {isAnalyticsLoading ? 'Analyzing...' : 'Analyze Risk'}
+        </button>
+        <AnalyticsPanel results={analyticsResults} isLoading={isAnalyticsLoading} />
+      </div>
+
+      <div className="results-section">
+        <h3 className="results-title">Posture Report</h3>
+        <button className="btn btn-primary" onClick={onGenerateReport} disabled={isReportLoading}>
+          {isReportLoading ? 'Generating...' : 'Generate Report'}
+        </button>
+        <ReportPanel results={reportResults} isLoading={isReportLoading} />
       </div>
     </aside>
   );

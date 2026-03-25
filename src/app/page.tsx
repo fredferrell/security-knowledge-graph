@@ -30,6 +30,20 @@ interface DriftResults {
   summary: { totalInventory: number; totalGraph: number; inSync: number; drifted: number };
 }
 
+interface AnalyticsResults {
+  assets: { name: string; zone: string; riskScore: number; riskLevel: string; metrics: Record<string, number> }[];
+  topRisks: { name: string; riskScore: number; riskLevel: string; primaryReason: string }[];
+  networkStats: { totalAssets: number; totalVulnerabilities: number; totalTrafficFlows: number; totalCredentials: number; averageRiskScore: number };
+}
+
+interface ReportResults {
+  generatedAt: string;
+  summary: { overallRisk: string; totalAssets: number; totalVulnerabilities: number; protectionCoverage: string; criticalFindings: number };
+  vulnerabilityMatrix: { cveId: string; severity: string; affectedAssets: string[]; exposedToInternet: boolean; firewallProtected: boolean }[];
+  recommendations: string[];
+  credentialMap: { source: string; targets: string[]; credentialTypes: string[] }[];
+}
+
 /** Wraps useEffect with empty deps to make external-sync intent explicit. */
 function useMountEffect(fn: () => void | (() => void)) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -47,6 +61,10 @@ export default function DashboardPage() {
   const [driftResults, setDriftResults] = useState<DriftResults | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [isDriftLoading, setIsDriftLoading] = useState(false);
+  const [analyticsResults, setAnalyticsResults] = useState<AnalyticsResults | null>(null);
+  const [reportResults, setReportResults] = useState<ReportResults | null>(null);
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
+  const [isReportLoading, setIsReportLoading] = useState(false);
 
   useMountEffect(() => {
     fetch('/api/graph')
@@ -114,11 +132,35 @@ export default function DashboardPage() {
       .finally(() => setIsDriftLoading(false));
   };
 
+  const handleRunAnalytics = () => {
+    setIsAnalyticsLoading(true);
+    fetch('/api/analytics')
+      .then((res) => res.json())
+      .then((data: AnalyticsResults) => {
+        setAnalyticsResults(data);
+        const ids = new Set<string>(data.topRisks.map((r) => r.name));
+        setHighlightNodes(ids);
+      })
+      .catch((err) => console.error('Analytics fetch failed:', err))
+      .finally(() => setIsAnalyticsLoading(false));
+  };
+
+  const handleGenerateReport = () => {
+    setIsReportLoading(true);
+    fetch('/api/report')
+      .then((res) => res.json())
+      .then((data: ReportResults) => setReportResults(data))
+      .catch((err) => console.error('Report generation failed:', err))
+      .finally(() => setIsReportLoading(false));
+  };
+
   const handleReset = () => {
     setBlastResults(null);
     setGapResults(null);
     setZeroDayResults(null);
     setDriftResults(null);
+    setAnalyticsResults(null);
+    setReportResults(null);
     setHighlightNodes(new Set());
     setSelectedNode(null);
   };
@@ -131,12 +173,18 @@ export default function DashboardPage() {
         onReset={handleReset}
         onSimulateZeroDay={handleSimulateZeroDay}
         onCheckDrift={handleCheckDrift}
+        onRunAnalytics={handleRunAnalytics}
+        onGenerateReport={handleGenerateReport}
         blastResults={blastResults}
         gapResults={gapResults}
         zeroDayResults={zeroDayResults}
         driftResults={driftResults}
+        analyticsResults={analyticsResults}
+        reportResults={reportResults}
         isSimulating={isSimulating}
         isDriftLoading={isDriftLoading}
+        isAnalyticsLoading={isAnalyticsLoading}
+        isReportLoading={isReportLoading}
       />
       <div className="graph-area">
         {graphData === null ? (
