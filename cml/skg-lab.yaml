@@ -340,7 +340,7 @@ nodes:
     parameters: {}
     configuration:
       - name: default
-        content: NAT
+        content: System Bridge
     interfaces:
       - id: i26
         label: port
@@ -363,7 +363,7 @@ nodes:
     parameters: {}
     configuration:
       - name: default
-        content: NAT
+        content: System Bridge
     interfaces:
       - id: i27
         label: port
