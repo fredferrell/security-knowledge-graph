@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { ZeroDayForm } from './zero-day-form';
+import { DriftPanel } from './drift-panel';
 
 interface AffectedAsset {
   name: string;
@@ -31,41 +33,57 @@ interface VulnerableAsset {
   hasGap: boolean;
 }
 
-interface GapSummary {
-  totalVulnerabilities: number;
-  assetsWithGaps: number;
-  coveredAssets: number;
-}
-
 interface GapResults {
   vulnerableAssets: VulnerableAsset[];
-  summary: GapSummary;
+  summary: { totalVulnerabilities: number; assetsWithGaps: number; coveredAssets: number };
+}
+
+interface ZeroDayResults {
+  vulnerability: Record<string, unknown>;
+  affectedAssets: { name: string; ip: string; zone: string }[];
+  exposurePaths: string[][];
+}
+
+interface DriftResults {
+  driftItems: { name: string; type: string; inventoryValue?: string; graphValue?: string }[];
+  summary: { totalInventory: number; totalGraph: number; inSync: number; drifted: number };
 }
 
 interface SidebarProps {
   onBlastRadius: (cveId: string) => void;
   onGapAnalysis: () => void;
   onReset: () => void;
+  onSimulateZeroDay: (data: {
+    cveId: string;
+    severity: string;
+    description: string;
+    affectedSoftware: string;
+    affectedVersion: string;
+  }) => void;
+  onCheckDrift: () => void;
   blastResults: BlastResults | null;
   gapResults: GapResults | null;
+  zeroDayResults: ZeroDayResults | null;
+  driftResults: DriftResults | null;
+  isSimulating: boolean;
+  isDriftLoading: boolean;
 }
 
-/** Sidebar with query controls and results panels for blast radius and gap analysis. */
-export function Sidebar({ onBlastRadius, onGapAnalysis, onReset, blastResults, gapResults }: SidebarProps) {
+/** Sidebar with query controls and results panels. */
+export function Sidebar({
+  onBlastRadius, onGapAnalysis, onReset,
+  onSimulateZeroDay, onCheckDrift,
+  blastResults, gapResults, zeroDayResults, driftResults,
+  isSimulating, isDriftLoading,
+}: SidebarProps) {
   const [cveId, setCveId] = useState('CVE-2021-41773');
-
-  const handleBlastRadius = () => {
-    onBlastRadius(cveId);
-  };
 
   return (
     <aside className="sidebar">
       <h2 className="sidebar-title">Security Analysis</h2>
 
       <div className="control-group">
-        <label htmlFor="cve-input" className="control-label">
-          CVE ID
-        </label>
+        <label htmlFor="cve-input" className="control-label">CVE ID</label>
         <input
           id="cve-input"
           type="text"
@@ -77,7 +95,7 @@ export function Sidebar({ onBlastRadius, onGapAnalysis, onReset, blastResults, g
       </div>
 
       <div className="button-group">
-        <button className="btn btn-primary" onClick={handleBlastRadius}>
+        <button className="btn btn-primary" onClick={() => onBlastRadius(cveId)}>
           Blast Radius
         </button>
         <button className="btn btn-primary" onClick={onGapAnalysis}>
@@ -91,34 +109,27 @@ export function Sidebar({ onBlastRadius, onGapAnalysis, onReset, blastResults, g
       {blastResults !== null && (
         <div className="results-section">
           <h3 className="results-title">Blast Radius: {blastResults.cve}</h3>
-
           <div className="results-block">
             <h4>Affected Assets ({blastResults.affectedAssets.length})</h4>
             <ul className="asset-list">
               {blastResults.affectedAssets.map((asset) => (
                 <li key={asset.ip} className="asset-item">
                   <span className="asset-name">{asset.name}</span>
-                  <span className="asset-meta">
-                    {asset.ip} — {asset.zone}
-                  </span>
+                  <span className="asset-meta">{asset.ip} — {asset.zone}</span>
                 </li>
               ))}
             </ul>
           </div>
-
           {blastResults.exposurePaths.length > 0 && (
             <div className="results-block">
               <h4>Exposure Paths</h4>
               <ul className="path-list">
                 {blastResults.exposurePaths.map((path, i) => (
-                  <li key={i} className="path-item">
-                    {path.join(' → ')}
-                  </li>
+                  <li key={i} className="path-item">{path.join(' → ')}</li>
                 ))}
               </ul>
             </div>
           )}
-
           {blastResults.firewallRules.length > 0 && (
             <div className="results-block">
               <h4>Firewall Rules ({blastResults.firewallRules.length})</h4>
@@ -126,9 +137,7 @@ export function Sidebar({ onBlastRadius, onGapAnalysis, onReset, blastResults, g
                 {blastResults.firewallRules.map((rule, i) => (
                   <li key={i} className={`rule-item rule-${rule.action}`}>
                     <span className="rule-name">{rule.name}</span>
-                    <span className="rule-meta">
-                      {rule.sourceZone} → {rule.destZone} ({rule.action})
-                    </span>
+                    <span className="rule-meta">{rule.sourceZone} → {rule.destZone} ({rule.action})</span>
                   </li>
                 ))}
               </ul>
@@ -140,13 +149,11 @@ export function Sidebar({ onBlastRadius, onGapAnalysis, onReset, blastResults, g
       {gapResults !== null && (
         <div className="results-section">
           <h3 className="results-title">Gap Analysis</h3>
-
           <div className="results-block summary-block">
             <p>Total vulnerabilities: <strong>{gapResults.summary.totalVulnerabilities}</strong></p>
             <p className="gap-warning">Assets with gaps: <strong>{gapResults.summary.assetsWithGaps}</strong></p>
             <p>Covered assets: <strong>{gapResults.summary.coveredAssets}</strong></p>
           </div>
-
           <div className="results-block">
             <h4>Vulnerable Assets</h4>
             <ul className="asset-list">
@@ -163,6 +170,21 @@ export function Sidebar({ onBlastRadius, onGapAnalysis, onReset, blastResults, g
           </div>
         </div>
       )}
+
+      <div className="results-section">
+        <ZeroDayForm
+          onSimulate={onSimulateZeroDay}
+          results={zeroDayResults}
+          isLoading={isSimulating}
+        />
+      </div>
+
+      <div className="results-section">
+        <button className="btn btn-primary" onClick={onCheckDrift} disabled={isDriftLoading}>
+          {isDriftLoading ? 'Checking...' : 'Check Drift'}
+        </button>
+        <DriftPanel results={driftResults} isLoading={isDriftLoading} />
+      </div>
     </aside>
   );
 }

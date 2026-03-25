@@ -19,6 +19,17 @@ interface GapResults {
   summary: { totalVulnerabilities: number; assetsWithGaps: number; coveredAssets: number };
 }
 
+interface ZeroDayResults {
+  vulnerability: Record<string, unknown>;
+  affectedAssets: { name: string; ip: string; zone: string }[];
+  exposurePaths: string[][];
+}
+
+interface DriftResults {
+  driftItems: { name: string; type: string; inventoryValue?: string; graphValue?: string }[];
+  summary: { totalInventory: number; totalGraph: number; inSync: number; drifted: number };
+}
+
 /** Wraps useEffect with empty deps to make external-sync intent explicit. */
 function useMountEffect(fn: () => void | (() => void)) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -32,6 +43,10 @@ export default function DashboardPage() {
   const [highlightNodes, setHighlightNodes] = useState<Set<string>>(new Set());
   const [blastResults, setBlastResults] = useState<BlastResults | null>(null);
   const [gapResults, setGapResults] = useState<GapResults | null>(null);
+  const [zeroDayResults, setZeroDayResults] = useState<ZeroDayResults | null>(null);
+  const [driftResults, setDriftResults] = useState<DriftResults | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [isDriftLoading, setIsDriftLoading] = useState(false);
 
   useMountEffect(() => {
     fetch('/api/graph')
@@ -68,9 +83,42 @@ export default function DashboardPage() {
       .catch((err) => console.error('Gap analysis fetch failed:', err));
   };
 
+  const handleSimulateZeroDay = (formData: {
+    cveId: string;
+    severity: string;
+    description: string;
+    affectedSoftware: string;
+    affectedVersion: string;
+  }) => {
+    setIsSimulating(true);
+    fetch('/api/simulate/zero-day', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    })
+      .then((res) => res.json())
+      .then((data: ZeroDayResults) => {
+        setZeroDayResults(data);
+        handleBlastRadius(formData.cveId);
+      })
+      .catch((err) => console.error('Zero-day simulation failed:', err))
+      .finally(() => setIsSimulating(false));
+  };
+
+  const handleCheckDrift = () => {
+    setIsDriftLoading(true);
+    fetch('/api/drift')
+      .then((res) => res.json())
+      .then((data: DriftResults) => setDriftResults(data))
+      .catch((err) => console.error('Drift check failed:', err))
+      .finally(() => setIsDriftLoading(false));
+  };
+
   const handleReset = () => {
     setBlastResults(null);
     setGapResults(null);
+    setZeroDayResults(null);
+    setDriftResults(null);
     setHighlightNodes(new Set());
     setSelectedNode(null);
   };
@@ -81,8 +129,14 @@ export default function DashboardPage() {
         onBlastRadius={handleBlastRadius}
         onGapAnalysis={handleGapAnalysis}
         onReset={handleReset}
+        onSimulateZeroDay={handleSimulateZeroDay}
+        onCheckDrift={handleCheckDrift}
         blastResults={blastResults}
         gapResults={gapResults}
+        zeroDayResults={zeroDayResults}
+        driftResults={driftResults}
+        isSimulating={isSimulating}
+        isDriftLoading={isDriftLoading}
       />
       <div className="graph-area">
         {graphData === null ? (
