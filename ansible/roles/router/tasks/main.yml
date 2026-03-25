@@ -1,0 +1,59 @@
+---
+- name: Configure hostname
+  ios_config:
+    lines:
+      - hostname edge-rtr
+
+- name: Configure interfaces
+  ios_config:
+    lines:
+      - description {{ item.description }}
+      - ip address {{ item.ip }} {{ item.mask }}
+      - no shutdown
+    parents: interface {{ item.interface }}
+  loop:
+    - { interface: "GigabitEthernet0/0", ip: "203.0.113.2", mask: "255.255.255.252", description: "Uplink to ISP" }
+    - { interface: "GigabitEthernet0/1", ip: "10.0.0.1", mask: "255.255.255.252", description: "Downlink to edge-fw" }
+
+- name: Configure default route to ISP
+  ios_config:
+    lines:
+      - ip route 0.0.0.0 0.0.0.0 203.0.113.1
+
+- name: Configure static routes to internal subnets via edge-fw
+  ios_config:
+    lines:
+      - ip route 10.10.0.0 255.255.0.0 10.0.0.2
+
+- name: Configure NetFlow export to ELK
+  ios_config:
+    lines:
+      - ip flow-export version 9
+      - ip flow-export destination {{ syslog_server }} {{ logstash_netflow_port }}
+      - ip flow-export source GigabitEthernet0/1
+
+- name: Enable NetFlow on interfaces
+  ios_config:
+    lines:
+      - ip flow ingress
+      - ip flow egress
+    parents: interface {{ item }}
+  loop:
+    - GigabitEthernet0/0
+    - GigabitEthernet0/1
+
+- name: Configure syslog to ELK
+  ios_config:
+    lines:
+      - logging host {{ syslog_server }} transport udp port {{ logstash_syslog_port }}
+      - logging trap informational
+
+- name: Configure DNS
+  ios_config:
+    lines:
+      - ip name-server {{ dns_server }}
+      - ip domain name skg.lab
+
+- name: Save configuration
+  ios_config:
+    save_when: modified

@@ -1,0 +1,13 @@
+# Global variables for all hosts
+skg_project: security-knowledge-graph
+ntp_server: pool.ntp.org
+dns_server: 10.10.4.10
+syslog_server: 10.10.5.10
+syslog_port: 514
+
+# ELK endpoints
+elasticsearch_host: 10.10.5.10
+elasticsearch_port: 9200
+kibana_port: 5601
+logstash_syslog_port: 5514
+logstash_netflow_port: 2055

@@ -1,0 +1,33 @@
+$TTL    604800
+@       IN      SOA     dns-srv.skg.lab. admin.skg.lab. (
+                              2         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      dns-srv.skg.lab.
+
+; Edge
+edge-rtr        IN      A       10.0.0.1
+edge-fw         IN      A       10.0.0.2
+
+; DMZ
+web-srv         IN      A       10.10.1.10
+
+; Internal Firewall
+internal-fw     IN      A       10.0.1.2
+
+; App Tier
+app-srv         IN      A       10.10.2.10
+
+; DB Tier
+db-srv          IN      A       10.10.3.10
+
+; Corporate
+dns-srv         IN      A       10.10.4.10
+vuln-vm         IN      A       10.10.4.20
+
+; Management
+elk-srv         IN      A       10.10.5.10
+mgmt-vm         IN      A       10.10.5.20

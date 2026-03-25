@@ -1,0 +1,305 @@
+lab:
+  title: Security Knowledge Graph Lab
+  description: >
+    10-device enterprise lab for Security Knowledge Graph demo.
+    Five zones: Internet Edge, DMZ, Server/App, Server/DB, Corporate, Management.
+    Two Palo Alto firewalls (edge + internal), three-tier web app,
+    ELK SIEM, DNS, Ansible management, and an intentionally vulnerable VM.
+  version: "1.0"
+
+nodes:
+  # ─────────────────────────────────────────────
+  # Internet Edge
+  # ─────────────────────────────────────────────
+  - name: edge-rtr
+    type: iosv
+    label: Edge Router
+    zone: internet-edge
+    description: Border router — NetFlow, syslog, BGP/static to ISP
+    interfaces:
+      - name: GigabitEthernet0/0
+        description: Uplink to ISP (simulated)
+        network: outside
+      - name: GigabitEthernet0/1
+        description: Downlink to edge-fw
+        network: edge-to-fw
+
+  # ─────────────────────────────────────────────
+  # Edge Firewall (North-South)
+  # ─────────────────────────────────────────────
+  - name: edge-fw
+    type: paloalto
+    label: Edge Palo Alto
+    zone: edge
+    description: North-south enforcement — threat logs, App-ID, traffic logs
+    interfaces:
+      - name: ethernet1/1
+        description: Outside — connected to edge-rtr
+        network: edge-to-fw
+        zone: untrust
+      - name: ethernet1/2
+        description: DMZ — web server subnet
+        network: dmz
+        zone: dmz
+      - name: ethernet1/3
+        description: Inside — connected to internal-fw
+        network: edge-to-internal
+
+  # ─────────────────────────────────────────────
+  # DMZ
+  # ─────────────────────────────────────────────
+  - name: web-srv
+    type: ubuntu
+    label: Web Server
+    zone: dmz
+    description: Apache reverse proxy — TLS termination, forwards to app-srv on 443
+    interfaces:
+      - name: ens2
+        description: DMZ subnet
+        network: dmz
+    software:
+      - apache2 (reverse proxy mode)
+    telemetry:
+      - syslog → elk-srv
+      - apache access/error logs → elk-srv
+
+  # ─────────────────────────────────────────────
+  # Internal Firewall (East-West)
+  # ─────────────────────────────────────────────
+  - name: internal-fw
+    type: paloalto
+    label: Internal Palo Alto
+    zone: internal
+    description: East-west segmentation — app/db/corporate/management zone enforcement
+    interfaces:
+      - name: ethernet1/1
+        description: Uplink to edge-fw
+        network: edge-to-internal
+        zone: edge-facing
+      - name: ethernet1/2
+        description: App tier subnet
+        network: app-tier
+        zone: app
+      - name: ethernet1/3
+        description: DB tier subnet
+        network: db-tier
+        zone: db
+      - name: ethernet1/4
+        description: Corporate subnet
+        network: corporate
+        zone: corporate
+      - name: ethernet1/5
+        description: Management subnet
+        network: management
+        zone: management
+
+  # ─────────────────────────────────────────────
+  # Server / App Tier
+  # ─────────────────────────────────────────────
+  - name: app-srv
+    type: ubuntu
+    label: Application Server
+    zone: app-tier
+    description: PHP application — receives from web-srv on 443, connects to db-srv on 3306
+    interfaces:
+      - name: ens2
+        description: App tier subnet
+        network: app-tier
+    software:
+      - apache2
+      - php
+      - custom form application
+    telemetry:
+      - syslog → elk-srv
+      - application logs → elk-srv
+
+  # ─────────────────────────────────────────────
+  # Server / DB Tier
+  # ─────────────────────────────────────────────
+  - name: db-srv
+    type: ubuntu
+    label: Database Server
+    zone: db-tier
+    description: MariaDB — only accepts connections from app-srv on 3306
+    interfaces:
+      - name: ens2
+        description: DB tier subnet
+        network: db-tier
+    software:
+      - mariadb-server
+    telemetry:
+      - syslog → elk-srv
+      - slow query logs → elk-srv
+
+  # ─────────────────────────────────────────────
+  # Corporate Zone
+  # ─────────────────────────────────────────────
+  - name: dns-srv
+    type: ubuntu
+    label: DNS Server
+    zone: corporate
+    description: BIND9 — full query logging, queried by all devices
+    interfaces:
+      - name: ens2
+        description: Corporate subnet
+        network: corporate
+    software:
+      - bind9
+    telemetry:
+      - query logs → elk-srv via syslog
+
+  - name: vuln-vm
+    type: ubuntu
+    label: Vulnerable VM
+    zone: corporate
+    description: >
+      Intentionally vulnerable — Apache 2.4.49 (CVE-2021-41773),
+      OpenSSH 8.2 (multiple CVEs). Gap analysis showcase.
+    interfaces:
+      - name: ens2
+        description: Corporate subnet
+        network: corporate
+    software:
+      - apache2 (2.4.49 — pinned, vulnerable)
+      - openssh-server (8.2 — pinned, vulnerable)
+    telemetry:
+      - syslog → elk-srv
+
+  # ─────────────────────────────────────────────
+  # Management Zone
+  # ─────────────────────────────────────────────
+  - name: elk-srv
+    type: ubuntu
+    label: SIEM / Log Collector
+    zone: management
+    description: >
+      Elasticsearch + Logstash + Kibana. Central telemetry aggregation.
+      SKG queries Elasticsearch via REST API.
+    interfaces:
+      - name: ens2
+        description: Management subnet
+        network: management
+    software:
+      - elasticsearch
+      - logstash
+      - kibana
+    telemetry:
+      - receives from all devices
+
+  - name: mgmt-vm
+    type: ubuntu
+    label: Management VM
+    zone: management
+    description: >
+      Ansible controller — manages full stack. Inventory is SKG data source
+      for intended-state vs actual-state drift detection.
+    interfaces:
+      - name: ens2
+        description: Management subnet
+        network: management
+    software:
+      - ansible
+    telemetry:
+      - syslog → elk-srv
+      - ansible inventory → skg
+
+# ─────────────────────────────────────────────
+# Network Segments
+# ─────────────────────────────────────────────
+networks:
+  - name: outside
+    description: Simulated ISP uplink
+    subnet: 203.0.113.0/30
+
+  - name: edge-to-fw
+    description: Router to edge firewall transit
+    subnet: 10.0.0.0/30
+
+  - name: edge-to-internal
+    description: Edge firewall to internal firewall transit
+    subnet: 10.0.1.0/30
+
+  - name: dmz
+    description: DMZ — web server
+    subnet: 10.10.1.0/24
+
+  - name: app-tier
+    description: Application server tier
+    subnet: 10.10.2.0/24
+
+  - name: db-tier
+    description: Database server tier
+    subnet: 10.10.3.0/24
+
+  - name: corporate
+    description: Corporate zone — DNS, endpoints, vulnerable VM
+    subnet: 10.10.4.0/24
+
+  - name: management
+    description: Management zone — ELK, Ansible
+    subnet: 10.10.5.0/24
+
+# ─────────────────────────────────────────────
+# Firewall Policy Summary
+# ─────────────────────────────────────────────
+firewall_policies:
+  edge-fw:
+    - name: allow-inbound-web
+      source: outside
+      destination: dmz
+      port: 80,443
+      action: allow
+      description: Allow HTTP/HTTPS to web server
+
+    - name: allow-dmz-to-app
+      source: dmz
+      destination: app-tier
+      port: 443
+      action: allow
+      description: Web server reverse proxy to app server
+
+    - name: deny-dmz-to-db
+      source: dmz
+      destination: db-tier
+      action: deny
+      description: Web server must NOT reach DB directly
+
+    - name: default-deny
+      source: any
+      destination: any
+      action: deny
+      description: Implicit deny all
+
+  internal-fw:
+    - name: allow-app-to-db
+      source: app-tier
+      destination: db-tier
+      port: 3306
+      action: allow
+      description: App server to MariaDB
+
+    - name: allow-all-to-dns
+      source: any
+      destination: corporate
+      port: 53
+      action: allow
+      description: All zones can query DNS
+
+    - name: allow-mgmt-outbound
+      source: management
+      destination: any
+      port: 22,443
+      action: allow
+      description: Management initiates SSH/HTTPS to all devices
+
+    - name: deny-to-mgmt
+      source: any
+      destination: management
+      action: deny
+      description: Nothing initiates inbound to management zone
+
+    - name: default-deny
+      source: any
+      destination: any
+      action: deny
+      description: Implicit deny all

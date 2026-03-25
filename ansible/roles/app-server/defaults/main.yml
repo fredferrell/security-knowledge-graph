@@ -1,0 +1,6 @@
+---
+db_host: 10.10.3.10
+db_port: 3306
+db_name: skg_app
+db_user: skg_app
+db_password: "{{ vault_db_password | default('changeme') }}"

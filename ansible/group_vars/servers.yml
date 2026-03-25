@@ -1,0 +1,9 @@
+# Common server configuration
+common_packages:
+  - curl
+  - wget
+  - net-tools
+  - rsyslog
+  - unattended-upgrades
+
+rsyslog_forward: "*.* @@{{ syslog_server }}:{{ logstash_syslog_port }}"

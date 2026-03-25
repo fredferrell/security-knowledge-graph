@@ -1,0 +1,10 @@
+---
+- name: restart rsyslog
+  service:
+    name: rsyslog
+    state: restarted
+
+- name: restart timesyncd
+  service:
+    name: systemd-timesyncd
+    state: restarted

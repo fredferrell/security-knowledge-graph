@@ -1,0 +1,44 @@
+---
+panos_provider:
+  ip_address: 10.0.1.2
+  username: admin
+  password: "{{ vault_panos_password | default('admin') }}"
+
+panos_zones:
+  - edge-facing
+  - app
+  - db
+  - corporate
+  - management
+
+panos_security_rules:
+  - name: allow-app-to-db
+    source_zone: [app]
+    dest_zone: [db]
+    source_ip: ["10.10.2.10"]
+    dest_ip: ["10.10.3.10"]
+    service: [service-mysql]
+    action: allow
+
+  - name: allow-all-to-dns
+    source_zone: [any]
+    dest_zone: [corporate]
+    dest_ip: ["10.10.4.10"]
+    application: [dns]
+    action: allow
+
+  - name: allow-mgmt-ssh-outbound
+    source_zone: [management]
+    dest_zone: [any]
+    application: [ssh, ssl]
+    action: allow
+
+  - name: deny-inbound-to-mgmt
+    source_zone: [any]
+    dest_zone: [management]
+    action: deny
+
+  - name: default-deny
+    source_zone: [any]
+    dest_zone: [any]
+    action: deny

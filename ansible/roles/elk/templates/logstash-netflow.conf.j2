@@ -1,0 +1,16 @@
+input {
+  udp {
+    port => {{ logstash_netflow_port }}
+    codec => netflow {
+      versions => [5, 9, 10]
+    }
+    type => "netflow"
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["localhost:{{ elasticsearch_port }}"]
+    index => "netflow-%{+YYYY.MM.dd}"
+  }
+}

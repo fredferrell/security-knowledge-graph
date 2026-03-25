@@ -1,0 +1,68 @@
+---
+- name: Install Java (required by Elasticsearch)
+  apt:
+    name: default-jdk
+    state: present
+
+- name: Add Elastic GPG key
+  apt_key:
+    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    state: present
+
+- name: Add Elastic repository
+  apt_repository:
+    repo: "deb https://artifacts.elastic.co/packages/8.x/apt stable main"
+    state: present
+
+- name: Install Elasticsearch
+  apt:
+    name: elasticsearch
+    state: present
+
+- name: Configure Elasticsearch for single node
+  template:
+    src: elasticsearch.yml.j2
+    dest: /etc/elasticsearch/elasticsearch.yml
+    mode: "0660"
+  notify: restart elasticsearch
+
+- name: Install Logstash
+  apt:
+    name: logstash
+    state: present
+
+- name: Deploy Logstash syslog pipeline
+  template:
+    src: logstash-syslog.conf.j2
+    dest: /etc/logstash/conf.d/01-syslog.conf
+    mode: "0644"
+  notify: restart logstash
+
+- name: Deploy Logstash NetFlow pipeline
+  template:
+    src: logstash-netflow.conf.j2
+    dest: /etc/logstash/conf.d/02-netflow.conf
+    mode: "0644"
+  notify: restart logstash
+
+- name: Install Kibana
+  apt:
+    name: kibana
+    state: present
+
+- name: Configure Kibana
+  template:
+    src: kibana.yml.j2
+    dest: /etc/kibana/kibana.yml
+    mode: "0660"
+  notify: restart kibana
+
+- name: Enable and start all ELK services
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  loop:
+    - elasticsearch
+    - logstash
+    - kibana

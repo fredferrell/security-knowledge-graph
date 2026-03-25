@@ -1,0 +1,17 @@
+<VirtualHost *:443>
+    ServerName app-srv.skg.lab
+
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/skg-app.crt
+    SSLCertificateKeyFile /etc/ssl/private/skg-app.key
+
+    DocumentRoot /var/www/html
+
+    <Directory /var/www/html>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/skg-app-error.log
+    CustomLog ${APACHE_LOG_DIR}/skg-app-access.log combined
+</VirtualHost>

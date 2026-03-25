@@ -1,0 +1,38 @@
+---
+- name: Install BIND9
+  apt:
+    name:
+      - bind9
+      - bind9utils
+      - bind9-doc
+    state: present
+
+- name: Deploy BIND9 configuration
+  template:
+    src: named.conf.options.j2
+    dest: /etc/bind/named.conf.options
+    mode: "0644"
+  notify: restart bind9
+
+- name: Deploy forward zone file
+  template:
+    src: db.skg.lab.j2
+    dest: /etc/bind/db.skg.lab
+    mode: "0644"
+  notify: restart bind9
+
+- name: Add zone to named.conf.local
+  blockinfile:
+    path: /etc/bind/named.conf.local
+    block: |
+      zone "skg.lab" {
+          type master;
+          file "/etc/bind/db.skg.lab";
+      };
+  notify: restart bind9
+
+- name: Ensure BIND9 is running
+  service:
+    name: bind9
+    state: started
+    enabled: yes

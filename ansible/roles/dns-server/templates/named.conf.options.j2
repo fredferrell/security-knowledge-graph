@@ -1,0 +1,31 @@
+options {
+    directory "/var/cache/bind";
+
+    // Allow queries from all lab subnets
+    allow-query { 10.0.0.0/8; localhost; };
+
+    // Forward external queries
+    forwarders {
+        8.8.8.8;
+        8.8.4.4;
+    };
+
+    // Enable query logging for SKG telemetry
+    querylog yes;
+
+    dnssec-validation auto;
+    listen-on { any; };
+};
+
+logging {
+    channel query_log {
+        syslog daemon;
+        severity info;
+        print-time yes;
+        print-category yes;
+    };
+
+    category queries {
+        query_log;
+    };
+};

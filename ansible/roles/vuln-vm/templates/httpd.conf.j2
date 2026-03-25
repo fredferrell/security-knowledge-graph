@@ -1,0 +1,23 @@
+# Intentionally vulnerable Apache 2.4.49 configuration
+# CVE-2021-41773: path traversal via /cgi-bin/..%2f
+ServerRoot "/opt/apache-vulnerable"
+Listen 80
+ServerName vuln-vm.skg.lab
+
+DocumentRoot "/opt/apache-vulnerable/htdocs"
+
+<Directory "/opt/apache-vulnerable/htdocs">
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Require all granted
+</Directory>
+
+# CGI enabled — required for CVE-2021-41773 exploitation path
+<Directory "/opt/apache-vulnerable/cgi-bin">
+    AllowOverride None
+    Options +ExecCGI
+    Require all granted
+</Directory>
+
+ErrorLog "logs/error_log"
+CustomLog "logs/access_log" combined

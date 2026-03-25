@@ -1,0 +1,19 @@
+<VirtualHost *:443>
+    ServerName web-srv.skg.lab
+
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/skg-app.crt
+    SSLCertificateKeyFile /etc/ssl/private/skg-app.key
+
+    ProxyPreserveHost On
+    ProxyPass / https://{{ app_server_host }}:{{ app_server_port }}/
+    ProxyPassReverse / https://{{ app_server_host }}:{{ app_server_port }}/
+
+    ErrorLog ${APACHE_LOG_DIR}/skg-app-error.log
+    CustomLog ${APACHE_LOG_DIR}/skg-app-access.log combined
+</VirtualHost>
+
+<VirtualHost *:80>
+    ServerName web-srv.skg.lab
+    Redirect permanent / https://web-srv.skg.lab/
+</VirtualHost>

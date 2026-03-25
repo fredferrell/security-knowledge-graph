@@ -1,0 +1,5 @@
+---
+db_name: skg_app
+db_user: skg_app
+db_password: "{{ vault_db_password | default('changeme') }}"
+app_server_ip: 10.10.2.10

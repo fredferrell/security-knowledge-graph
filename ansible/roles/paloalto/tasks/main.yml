@@ -1,0 +1,61 @@
+---
+# Palo Alto configuration via panos Ansible collection
+# Requires: ansible-galaxy collection install paloaltonetworks.panos
+
+- name: Configure syslog server profile
+  paloaltonetworks.panos.panos_syslog_server:
+    provider: "{{ panos_provider }}"
+    syslog_profile: "skg-elk"
+    name: "elk-srv"
+    address: "{{ syslog_server }}"
+    port: "{{ logstash_syslog_port }}"
+    transport: UDP
+    format: BSD
+    facility: LOG_USER
+
+- name: Configure log forwarding profile
+  paloaltonetworks.panos.panos_log_forwarding_profile:
+    provider: "{{ panos_provider }}"
+    name: "skg-logging"
+    enhanced_logging: true
+    match_list:
+      - name: "all-traffic"
+        log_type: "traffic"
+        syslog_profiles: ["skg-elk"]
+      - name: "all-threat"
+        log_type: "threat"
+        syslog_profiles: ["skg-elk"]
+
+- name: Configure DNS settings
+  paloaltonetworks.panos.panos_mgtconfig:
+    provider: "{{ panos_provider }}"
+    dns_server_primary: "{{ dns_server }}"
+    ntp_server_primary: "{{ ntp_server }}"
+
+- name: Configure security zones (edge firewall)
+  paloaltonetworks.panos.panos_zone:
+    provider: "{{ panos_provider }}"
+    zone: "{{ item }}"
+    mode: layer3
+  loop: "{{ panos_zones }}"
+  when: panos_zones is defined
+
+- name: Deploy security policies
+  paloaltonetworks.panos.panos_security_rule:
+    provider: "{{ panos_provider }}"
+    rule_name: "{{ item.name }}"
+    source_zone: "{{ item.source_zone }}"
+    destination_zone: "{{ item.dest_zone }}"
+    source_ip: "{{ item.source_ip | default(['any']) }}"
+    destination_ip: "{{ item.dest_ip | default(['any']) }}"
+    application: "{{ item.application | default(['any']) }}"
+    service: "{{ item.service | default(['application-default']) }}"
+    action: "{{ item.action }}"
+    log_end: true
+    log_setting: "skg-logging"
+  loop: "{{ panos_security_rules }}"
+  when: panos_security_rules is defined
+
+- name: Commit configuration
+  paloaltonetworks.panos.panos_commit_firewall:
+    provider: "{{ panos_provider }}"

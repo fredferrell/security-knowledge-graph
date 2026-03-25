@@ -1,0 +1,54 @@
+---
+- name: Install Apache and PHP
+  apt:
+    name:
+      - apache2
+      - php
+      - libapache2-mod-php
+      - php-mysql
+    state: present
+
+- name: Enable SSL module
+  apache2_module:
+    name: ssl
+    state: present
+  notify: restart apache
+
+- name: Deploy PHP application
+  template:
+    src: index.php.j2
+    dest: /var/www/html/index.php
+    mode: "0644"
+  notify: restart apache
+
+- name: Remove default index.html
+  file:
+    path: /var/www/html/index.html
+    state: absent
+
+- name: Generate self-signed TLS cert
+  command: >
+    openssl req -x509 -nodes -days 365
+    -newkey rsa:2048
+    -keyout /etc/ssl/private/skg-app.key
+    -out /etc/ssl/certs/skg-app.crt
+    -subj "/CN=app-srv.skg.lab"
+  args:
+    creates: /etc/ssl/certs/skg-app.crt
+
+- name: Deploy SSL vhost config
+  template:
+    src: app-ssl.conf.j2
+    dest: /etc/apache2/sites-available/skg-app-ssl.conf
+    mode: "0644"
+  notify: restart apache
+
+- name: Enable SSL site
+  command: a2ensite skg-app-ssl.conf
+  notify: restart apache
+
+- name: Ensure Apache is running
+  service:
+    name: apache2
+    state: started
+    enabled: yes

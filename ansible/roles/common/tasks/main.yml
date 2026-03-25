@@ -1,0 +1,30 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install common packages
+  apt:
+    name: "{{ common_packages }}"
+    state: present
+
+- name: Configure rsyslog forwarding to ELK
+  lineinfile:
+    path: /etc/rsyslog.conf
+    line: "{{ rsyslog_forward }}"
+    insertafter: EOF
+  notify: restart rsyslog
+
+- name: Set DNS resolver to internal DNS server
+  template:
+    src: resolv.conf.j2
+    dest: /etc/resolv.conf
+    mode: "0644"
+
+- name: Configure NTP
+  lineinfile:
+    path: /etc/systemd/timesyncd.conf
+    regexp: "^#?NTP="
+    line: "NTP={{ ntp_server }}"
+  notify: restart timesyncd

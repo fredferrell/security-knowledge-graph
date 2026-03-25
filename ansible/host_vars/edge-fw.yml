@@ -1,0 +1,37 @@
+---
+panos_provider:
+  ip_address: 10.0.0.2
+  username: admin
+  password: "{{ vault_panos_password | default('admin') }}"
+
+panos_zones:
+  - untrust
+  - dmz
+
+panos_security_rules:
+  - name: allow-inbound-web
+    source_zone: [untrust]
+    dest_zone: [dmz]
+    dest_ip: ["10.10.1.10"]
+    application: [web-browsing, ssl]
+    action: allow
+
+  - name: allow-dmz-to-app
+    source_zone: [dmz]
+    dest_zone: [dmz]
+    source_ip: ["10.10.1.10"]
+    dest_ip: ["10.10.2.10"]
+    service: [service-https]
+    action: allow
+
+  - name: deny-dmz-to-db
+    source_zone: [dmz]
+    dest_zone: [dmz]
+    source_ip: ["10.10.1.0/24"]
+    dest_ip: ["10.10.3.0/24"]
+    action: deny
+
+  - name: default-deny
+    source_zone: [any]
+    dest_zone: [any]
+    action: deny

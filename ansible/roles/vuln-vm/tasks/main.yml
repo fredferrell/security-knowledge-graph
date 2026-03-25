@@ -1,0 +1,65 @@
+---
+# Intentionally vulnerable VM — DO NOT apply to production systems
+# Apache 2.4.49 (CVE-2021-41773 — path traversal)
+# OpenSSH 8.2 (multiple known CVEs)
+
+- name: Install build dependencies for Apache from source
+  apt:
+    name:
+      - build-essential
+      - libapr1-dev
+      - libaprutil1-dev
+      - libpcre3-dev
+      - libssl-dev
+    state: present
+
+- name: Download Apache 2.4.49 (vulnerable version)
+  get_url:
+    url: https://archive.apache.org/dist/httpd/httpd-2.4.49.tar.gz
+    dest: /tmp/httpd-2.4.49.tar.gz
+
+- name: Extract Apache source
+  unarchive:
+    src: /tmp/httpd-2.4.49.tar.gz
+    dest: /tmp/
+    remote_src: yes
+
+- name: Build and install Apache 2.4.49
+  shell: |
+    cd /tmp/httpd-2.4.49
+    ./configure --prefix=/opt/apache-vulnerable --enable-cgi
+    make
+    make install
+  args:
+    creates: /opt/apache-vulnerable/bin/httpd
+
+- name: Deploy vulnerable Apache config
+  template:
+    src: httpd.conf.j2
+    dest: /opt/apache-vulnerable/conf/httpd.conf
+    mode: "0644"
+
+- name: Create systemd service for vulnerable Apache
+  template:
+    src: apache-vulnerable.service.j2
+    dest: /etc/systemd/system/apache-vulnerable.service
+    mode: "0644"
+  notify: reload systemd
+
+- name: Start vulnerable Apache
+  service:
+    name: apache-vulnerable
+    state: started
+    enabled: yes
+
+- name: Install additional vulnerable services
+  apt:
+    name:
+      - openssh-server
+    state: present
+
+- name: Ensure SSH is running
+  service:
+    name: ssh
+    state: started
+    enabled: yes

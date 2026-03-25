@@ -1,0 +1,53 @@
+---
+- name: Install MariaDB
+  apt:
+    name:
+      - mariadb-server
+      - mariadb-client
+    state: present
+
+- name: Bind MariaDB to all interfaces
+  lineinfile:
+    path: /etc/mysql/mariadb.conf.d/50-server.cnf
+    regexp: "^bind-address"
+    line: "bind-address = 0.0.0.0"
+  notify: restart mariadb
+
+- name: Enable slow query log
+  blockinfile:
+    path: /etc/mysql/mariadb.conf.d/50-server.cnf
+    insertafter: "\\[mysqld\\]"
+    block: |
+      slow_query_log = 1
+      slow_query_log_file = /var/log/mysql/slow-query.log
+      long_query_time = 2
+  notify: restart mariadb
+
+- name: Ensure MariaDB is running
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Create application database
+  mysql_db:
+    name: "{{ db_name }}"
+    state: present
+
+- name: Create application user (restricted to app server IP)
+  mysql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    host: "{{ app_server_ip }}"
+    priv: "{{ db_name }}.*:ALL"
+    state: present
+
+- name: Create users table
+  mysql_query:
+    db: "{{ db_name }}"
+    query: |
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        created_at DATETIME NOT NULL
+      );

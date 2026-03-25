@@ -1,0 +1,51 @@
+<?php
+/**
+ * SKG Demo Application
+ * Simple form: submit a username, store in MariaDB.
+ */
+
+$db_host = '{{ db_host }}';
+$db_port = {{ db_port }};
+$db_name = '{{ db_name }}';
+$db_user = '{{ db_user }}';
+$db_pass = '{{ db_password }}';
+
+$message = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['username'])) {
+    try {
+        $pdo = new PDO(
+            "mysql:host=$db_host;port=$db_port;dbname=$db_name",
+            $db_user,
+            $db_pass
+        );
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $stmt = $pdo->prepare('INSERT INTO users (username, created_at) VALUES (:username, NOW())');
+        $stmt->execute(['username' => $_POST['username']]);
+        $message = 'User "' . htmlspecialchars($_POST['username']) . '" added successfully.';
+    } catch (PDOException $e) {
+        $message = 'Database error: ' . htmlspecialchars($e->getMessage());
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SKG Demo App</title>
+</head>
+<body>
+    <h1>Security Knowledge Graph — Demo Application</h1>
+
+    <?php if ($message): ?>
+        <p><strong><?php echo $message; ?></strong></p>
+    <?php endif; ?>
+
+    <form method="POST">
+        <label for="username">Enter Username:</label><br>
+        <input type="text" id="username" name="username" required>
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>

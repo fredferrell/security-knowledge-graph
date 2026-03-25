@@ -1,0 +1,12 @@
+[Unit]
+Description=Apache 2.4.49 (Vulnerable - SKG Demo)
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/opt/apache-vulnerable/bin/apachectl start
+ExecStop=/opt/apache-vulnerable/bin/apachectl stop
+ExecReload=/opt/apache-vulnerable/bin/apachectl restart
+
+[Install]
+WantedBy=multi-user.target

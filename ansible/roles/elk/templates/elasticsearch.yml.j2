@@ -1,0 +1,8 @@
+cluster.name: skg-lab
+node.name: elk-srv
+path.data: /var/lib/elasticsearch
+path.logs: /var/log/elasticsearch
+network.host: 0.0.0.0
+http.port: {{ elasticsearch_port }}
+discovery.type: single-node
+xpack.security.enabled: false
