@@ -1,0 +1,39 @@
+{
+  "name": "security-knowledge-graph",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint src/",
+    "prepare": "husky",
+    "test": "jest",
+    "test:all": "jest --testPathPattern=\"\\.(test|integration\\.test)\\.[jt]sx?$\"",
+    "posttest": "git rev-parse HEAD > .test-passed",
+    "validate-docs": "node scripts/validate-docs.js --full",
+    "generate-docs": "node scripts/generate-docs.js"
+  },
+  "dependencies": {
+    "next": "^15.3.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "@types/react": "^19.1.4",
+    "@types/react-dom": "^19.1.5",
+    "eslint": "^10.1.0",
+    "husky": "^9.1.7",
+    "jest": "^30.3.0",
+    "@jest/globals": "^30.3.0",
+    "ts-jest": "^29.3.4",
+    "lint-staged": "^16.4.0",
+    "typescript": "^5.8.3"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.test-passed
+.env
+.env.local
+coverage/
+dist/
+build/
+*.log
+
+# Claude Code
+CLAUDE.md
+.claude/
