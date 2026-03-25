@@ -66,7 +66,7 @@ nodes:
     cpu_limit: null
     cpus: 2
     data_volume: null
-    ram: 6144
+    ram: 8192
     tags: []
     parameters: {}
     configuration: []
@@ -122,7 +122,7 @@ nodes:
     cpu_limit: null
     cpus: 2
     data_volume: null
-    ram: 6144
+    ram: 8192
     tags: []
     parameters: {}
     configuration: []
