@@ -2,44 +2,44 @@
 export interface Asset {
   id: string;
   name: string;
-  /** Device category, e.g. 'ubuntu-vm', 'palo-alto', 'switch'. */
-  type: string;
-  ip: string;
+  label: string;
+  type: 'router' | 'firewall' | 'server' | 'vm';
   zone: string;
-  os?: string;
+  ip: string;
+  software: string[];
+  description: string;
 }
 
 /** Represents a CVE-based vulnerability. */
 export interface Vulnerability {
   id: string;
-  cve: string;
-  /** CVSS severity label: 'critical' | 'high' | 'medium' | 'low'. */
-  severity: string;
-  cvssScore: number;
+  cveId: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
   description: string;
-  affectedVersions?: string[];
+  affectedSoftware: string;
+  affectedVersion: string;
 }
 
-/** Represents a firewall policy rule on a Palo Alto or similar device. */
+/** Represents a firewall policy rule. */
 export interface FirewallRule {
   id: string;
+  firewall: string;
   name: string;
-  action: 'allow' | 'deny';
   sourceZone: string;
   destZone: string;
-  protocol: string;
-  port: number;
-}
-
-/** Represents an observed network traffic flow between two endpoints. */
-export interface TrafficFlow {
-  id: string;
   sourceIp: string;
   destIp: string;
-  protocol: string;
+  port: string;
+  action: 'allow' | 'deny';
+}
+
+/** Represents an observed network traffic flow between two assets. */
+export interface TrafficFlow {
+  sourceAsset: string;
+  destAsset: string;
   port: number;
-  timestamp: string;
-  bytesTransferred?: number;
+  protocol: string;
+  bytesTotal: number;
 }
 
 /** A node in the graph visualisation layer. */
@@ -47,6 +47,8 @@ export interface GraphNode {
   id: string;
   /** Neo4j label, e.g. 'Asset', 'Vulnerability', 'FirewallRule'. */
   label: string;
+  type: string;
+  group: string;
   properties: Record<string, unknown>;
 }
 
@@ -56,7 +58,7 @@ export interface GraphLink {
   target: string;
   /** Neo4j relationship type, e.g. 'CONNECTS_TO', 'HAS_VULNERABILITY'. */
   type: string;
-  properties?: Record<string, unknown>;
+  properties: Record<string, unknown>;
 }
 
 /** Full graph payload returned by API routes. */
@@ -67,7 +69,7 @@ export interface GraphData {
 
 /**
  * Type guard for Asset.
- * Returns true if the value is a non-null object with the required Asset string fields.
+ * Returns true if the value is a non-null object with the required Asset fields.
  */
 export function isAsset(value: unknown): value is Asset {
   if (typeof value !== 'object' || value === null) {
@@ -77,9 +79,12 @@ export function isAsset(value: unknown): value is Asset {
   return (
     typeof v['id'] === 'string' &&
     typeof v['name'] === 'string' &&
+    typeof v['label'] === 'string' &&
     typeof v['type'] === 'string' &&
+    typeof v['zone'] === 'string' &&
     typeof v['ip'] === 'string' &&
-    typeof v['zone'] === 'string'
+    Array.isArray(v['software']) &&
+    typeof v['description'] === 'string'
   );
 }
 
@@ -94,9 +99,10 @@ export function isVulnerability(value: unknown): value is Vulnerability {
   const v = value as Record<string, unknown>;
   return (
     typeof v['id'] === 'string' &&
-    typeof v['cve'] === 'string' &&
+    typeof v['cveId'] === 'string' &&
     typeof v['severity'] === 'string' &&
-    typeof v['cvssScore'] === 'number' &&
-    typeof v['description'] === 'string'
+    typeof v['description'] === 'string' &&
+    typeof v['affectedSoftware'] === 'string' &&
+    typeof v['affectedVersion'] === 'string'
   );
 }

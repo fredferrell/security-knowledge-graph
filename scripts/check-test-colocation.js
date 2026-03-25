@@ -39,7 +39,8 @@ function matchesPattern(filePath, patterns) {
 }
 
 /**
- * Check if a source file has a colocated test file.
+ * Check if a source file has a colocated test file (either alongside the source
+ * or under the mirror path in tests/).
  * @param {string} filePath - Source file path (e.g., src/users/service.ts)
  * @returns {null | {file: string, expected: string[]}}
  */
@@ -48,13 +49,21 @@ function checkColocation(filePath) {
   const ext = extname(filePath);
   const name = basename(filePath, ext);
 
-  const candidates = CONFIG.testSuffixes.map(suffix =>
+  // Colocated candidates: same directory as the source file
+  const colocatedCandidates = CONFIG.testSuffixes.map(suffix =>
     resolve(dir, `${name}${suffix}${ext}`)
   );
 
-  const hasTest = candidates.some(candidate => existsSync(candidate));
+  // Mirror candidates: tests/<subpath>/<name>.test.ts (replaces leading src/ with tests/)
+  const mirrorDir = dir.replace(/^src(\/|$)/, 'tests$1');
+  const mirrorCandidates = mirrorDir !== dir
+    ? CONFIG.testSuffixes.map(suffix => resolve(mirrorDir, `${name}${suffix}${ext}`))
+    : [];
+
+  const allCandidates = [...colocatedCandidates, ...mirrorCandidates];
+  const hasTest = allCandidates.some(candidate => existsSync(candidate));
   if (!hasTest) {
-    return { file: filePath, expected: candidates.map(c => c.replace(resolve('.') + '/', '')) };
+    return { file: filePath, expected: colocatedCandidates.map(c => c.replace(resolve('.') + '/', '')) };
   }
   return null;
 }
