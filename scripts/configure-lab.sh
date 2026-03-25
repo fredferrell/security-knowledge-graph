@@ -234,6 +234,8 @@ ubuntu_cloud_init() {
 #cloud-config
 hostname: $hostname
 manage_etc_hosts: true
+packages:
+  - openssh-server
 users:
   - name: cisco
     groups: sudo
@@ -259,6 +261,8 @@ write_files:
                 - 10.10.4.10
 runcmd:
   - netplan apply
+  - systemctl enable ssh
+  - systemctl restart ssh
 CLOUDINIT
 }
 
