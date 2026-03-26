@@ -48,10 +48,13 @@ echo "Lab created: $LAB_ID"
 # Create nodes
 # ──────────────────────────────────────────
 create_node() {
-  local label=$1 definition=$2 image=$3 x=$4 y=$5
+  local label=$1 definition=$2 image=${3:-} x=$4 y=$5
   local ram=${6:-0} cpus=${7:-0}
 
-  local data="{\"label\":\"$label\",\"node_definition\":\"$definition\",\"image_definition\":\"$image\",\"x\":$x,\"y\":$y"
+  local data="{\"label\":\"$label\",\"node_definition\":\"$definition\",\"x\":$x,\"y\":$y"
+  if [ -n "$image" ]; then
+    data="$data,\"image_definition\":\"$image\""
+  fi
   if [ "$ram" -gt 0 ]; then
     data="$data,\"ram\":$ram"
   fi
@@ -98,8 +101,15 @@ ELK_SRV=$(create_node "elk-srv" "ubuntu" "ubuntu-22-04-20240126" 200 400 8192 2)
 # Management VM (Ubuntu - Management) — runs SKG app via Docker
 MGMT_VM=$(create_node "mgmt-vm" "ubuntu" "ubuntu-22-04-20240126" 400 400 4096 2)
 
-# External connector for internet simulation
-EXT_CONN=$(create_node "internet" "external_connector" "" -600 0 0 0 2>/dev/null || true)
+# Unmanaged switches for shared segments
+CORP_SW=$(create_node "corp-sw" "unmanaged_switch" "" 200 200)
+MGMT_SW=$(create_node "mgmt-sw" "unmanaged_switch" "" 300 400)
+
+# External connectors (System Bridge)
+EXT_EDGE=$(create_node "ext-edge" "external_connector" "" -600 0)
+EXT_MGMT=$(create_node "ext-mgmt" "external_connector" "" 600 400)
+api PATCH "/labs/$LAB_ID/nodes/$EXT_EDGE" -d '{"configuration":"System Bridge"}' > /dev/null
+api PATCH "/labs/$LAB_ID/nodes/$EXT_MGMT" -d '{"configuration":"System Bridge"}' > /dev/null
 
 echo ""
 echo "=== Creating Links ==="
@@ -136,7 +146,11 @@ create_link() {
   echo "  Linked: $label"
 }
 
-# Network links matching topology (IOSv: Gi0/0=slot0, Gi0/1=slot1, ...)
+# ── Core links (IOSv: Gi0/0=slot0, Gi0/1=slot1, ...) ──
+
+# ext-edge <-> edge-rtr Gi0/0 (internet uplink)
+create_link "$EXT_EDGE" 0 "$EDGE_RTR" 0 "ext-edge <-> edge-rtr"
+
 # edge-rtr Gi0/1 <-> edge-fw Gi0/0 (edge-to-fw transit)
 create_link "$EDGE_RTR" 1 "$EDGE_FW" 0 "edge-rtr <-> edge-fw"
 
@@ -152,31 +166,30 @@ create_link "$INTERNAL_FW" 1 "$APP_SRV" 0 "internal-fw <-> app-srv"
 # internal-fw Gi0/2 <-> db-srv ens2 (db tier)
 create_link "$INTERNAL_FW" 2 "$DB_SRV" 0 "internal-fw <-> db-srv"
 
-# internal-fw Gi0/3 <-> corp-sw (corporate zone — shared segment)
-create_link "$INTERNAL_FW" 3 "$DNS_SRV" 0 "internal-fw <-> dns-srv (corporate)"
+# ── Corporate zone (shared segment via corp-sw) ──
 
-# internal-fw Gi0/4 <-> mgmt-sw (management zone — shared segment)
-create_link "$INTERNAL_FW" 4 "$ELK_SRV" 0 "internal-fw <-> elk-srv (management)"
+# internal-fw Gi0/3 <-> corp-sw port0
+create_link "$INTERNAL_FW" 3 "$CORP_SW" 0 "internal-fw <-> corp-sw"
 
-# For shared segments (corporate: dns-srv + vuln-vm, management: elk-srv + mgmt-vm)
-# we need unmanaged switches
+# dns-srv ens2 <-> corp-sw port1
+create_link "$DNS_SRV" 0 "$CORP_SW" 1 "dns-srv <-> corp-sw"
 
-echo ""
-echo "=== Creating Shared Segment Switches ==="
+# vuln-vm ens2 <-> corp-sw port2
+create_link "$VULN_VM" 0 "$CORP_SW" 2 "vuln-vm <-> corp-sw"
 
-CORP_SW=$(create_node "corp-sw" "unmanaged_switch" "" 200 200 0 0 2>/dev/null || echo "skip")
-MGMT_SW=$(create_node "mgmt-sw" "unmanaged_switch" "" 300 400 0 0 2>/dev/null || echo "skip")
+# ── Management zone (shared segment via mgmt-sw) ──
 
-if [ "$CORP_SW" != "skip" ]; then
-  # Reconnect: internal-fw eth1/4 -> corp-sw, dns-srv -> corp-sw, vuln-vm -> corp-sw
-  create_link "$DNS_SRV" 0 "$CORP_SW" 0 "dns-srv <-> corp-sw" 2>/dev/null || true
-  create_link "$VULN_VM" 0 "$CORP_SW" 1 "vuln-vm <-> corp-sw" 2>/dev/null || true
-fi
+# internal-fw Gi0/4 <-> mgmt-sw port0
+create_link "$INTERNAL_FW" 4 "$MGMT_SW" 0 "internal-fw <-> mgmt-sw"
 
-if [ "$MGMT_SW" != "skip" ]; then
-  # mgmt-sw: elk-srv -> mgmt-sw, mgmt-vm -> mgmt-sw
-  create_link "$MGMT_VM" 0 "$MGMT_SW" 0 "mgmt-vm <-> mgmt-sw" 2>/dev/null || true
-fi
+# elk-srv ens2 <-> mgmt-sw port1
+create_link "$ELK_SRV" 0 "$MGMT_SW" 1 "elk-srv <-> mgmt-sw"
+
+# mgmt-vm ens2 <-> mgmt-sw port2
+create_link "$MGMT_VM" 0 "$MGMT_SW" 2 "mgmt-vm <-> mgmt-sw"
+
+# ext-mgmt <-> mgmt-sw port3 (management bridge access)
+create_link "$EXT_MGMT" 0 "$MGMT_SW" 3 "ext-mgmt <-> mgmt-sw"
 
 echo ""
 echo "=== Lab Summary ==="
