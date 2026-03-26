@@ -47,7 +47,7 @@
 
 - name: Create users table
   community.mysql.mysql_query:
-    db: "{{ db_name }}"
+    login_db: "{{ db_name }}"
     login_unix_socket: /run/mysqld/mysqld.sock
     query: |
       CREATE TABLE IF NOT EXISTS users (
