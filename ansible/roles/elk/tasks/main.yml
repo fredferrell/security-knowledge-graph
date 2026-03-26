@@ -45,6 +45,12 @@
     mode: "0644"
   notify: restart logstash
 
+- name: Install Logstash NetFlow codec plugin
+  command: /usr/share/logstash/bin/logstash-plugin install logstash-codec-netflow
+  args:
+    creates: /usr/share/logstash/vendor/bundle/jruby/3.1.0/gems/logstash-codec-netflow-*
+  notify: restart logstash
+
 - name: Install Kibana
   apt:
     name: kibana

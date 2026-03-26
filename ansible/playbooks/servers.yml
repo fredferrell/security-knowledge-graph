@@ -21,6 +21,11 @@
   roles:
     - db-server
 
+- name: Deploy DNS server (BIND9)
+  hosts: dns-srv
+  roles:
+    - dns-server
+
 - name: Deploy ELK stack
   hosts: elk-srv
   roles:

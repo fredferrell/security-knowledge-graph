@@ -1,9 +1,10 @@
 ---
-- name: Install MariaDB
+- name: Install MariaDB and Python MySQL bindings
   apt:
     name:
       - mariadb-server
       - mariadb-client
+      - python3-pymysql
     state: present
 
 - name: Bind MariaDB to all interfaces
@@ -30,21 +31,24 @@
     enabled: yes
 
 - name: Create application database
-  mysql_db:
+  community.mysql.mysql_db:
     name: "{{ db_name }}"
     state: present
+    login_unix_socket: /run/mysqld/mysqld.sock
 
 - name: Create application user (restricted to app server IP)
-  mysql_user:
+  community.mysql.mysql_user:
     name: "{{ db_user }}"
     password: "{{ db_password }}"
     host: "{{ app_server_ip }}"
     priv: "{{ db_name }}.*:ALL"
     state: present
+    login_unix_socket: /run/mysqld/mysqld.sock
 
 - name: Create users table
-  mysql_query:
+  community.mysql.mysql_query:
     db: "{{ db_name }}"
+    login_unix_socket: /run/mysqld/mysqld.sock
     query: |
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,

@@ -283,6 +283,11 @@ configure_node "$MGMT_VM" "mgmt-vm" "$(cat <<'CLOUDINIT'
 #cloud-config
 hostname: mgmt-vm
 manage_etc_hosts: true
+packages:
+  - openssh-server
+  - git
+  - python3-pip
+  - software-properties-common
 users:
   - name: cisco
     groups: sudo
@@ -312,6 +317,11 @@ write_files:
                 - 192.168.10.254
 runcmd:
   - netplan apply
+  - systemctl enable ssh
+  - systemctl restart ssh
+  - add-apt-repository --yes --update ppa:ansible/ansible
+  - apt-get install -y ansible
+  - ansible-galaxy collection install community.mysql
 CLOUDINIT
 )"
 
