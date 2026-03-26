@@ -292,6 +292,8 @@ runcmd:
   - netplan apply
   - systemctl enable ssh
   - systemctl restart ssh
+  # Set DNS to Google until lab DNS is available
+  - resolvectl dns ens2 8.8.8.8 8.8.4.4
   # Install Ansible
   - add-apt-repository --yes --update ppa:ansible/ansible
   - apt-get install -y ansible

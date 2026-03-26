@@ -203,6 +203,11 @@ echo "Links: $LINK_COUNT"
 
 echo ""
 echo "=== Starting Lab ==="
+# Start infrastructure nodes first (switches, connectors)
+for infra_node in "$CORP_SW" "$MGMT_SW" "$EXT_EDGE" "$EXT_MGMT"; do
+  api PUT "/labs/$LAB_ID/nodes/$infra_node/state/start" > /dev/null 2>&1
+done
+# Start the full lab (routers, servers)
 api PUT "/labs/$LAB_ID/state/start" > /dev/null 2>&1
 echo "Lab start initiated. Nodes will boot over the next few minutes."
 echo ""
