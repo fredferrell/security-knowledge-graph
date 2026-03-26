@@ -1,4 +1,8 @@
 ---
+- name: Set temporary DNS to Google (until lab BIND9 is running)
+  shell: resolvectl dns ens2 8.8.8.8 8.8.4.4
+  changed_when: false
+
 - name: Update apt cache
   apt:
     update_cache: yes
