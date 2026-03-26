@@ -370,7 +370,7 @@ nodes:
         type: physical
         slot: 0
 
-  # ── Management VM / Ansible (Management) ──
+  # ── Management VM / Ansible + SKG App (Management) ──
   - id: n11
     label: mgmt-vm
     node_definition: ubuntu
@@ -380,9 +380,9 @@ nodes:
     hide_links: false
     boot_disk_size: null
     cpu_limit: null
-    cpus: null
+    cpus: 2
     data_volume: null
-    ram: null
+    ram: 4096
     tags: []
     parameters: {}
     configuration: []

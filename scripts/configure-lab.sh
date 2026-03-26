@@ -288,9 +288,12 @@ packages:
   - git
   - python3-pip
   - software-properties-common
+  - ca-certificates
+  - curl
+  - gnupg
 users:
   - name: cisco
-    groups: sudo
+    groups: sudo,docker
     shell: /bin/bash
     sudo: ALL=(ALL) NOPASSWD:ALL
     lock_passwd: false
@@ -319,9 +322,22 @@ runcmd:
   - netplan apply
   - systemctl enable ssh
   - systemctl restart ssh
+  # Install Ansible
   - add-apt-repository --yes --update ppa:ansible/ansible
   - apt-get install -y ansible
   - ansible-galaxy collection install community.mysql
+  # Install Docker CE
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  - systemctl enable docker
+  - systemctl start docker
+  # Deploy SKG application
+  - su - cisco -c "git clone https://github.com/fredferrell/security-knowledge-graph.git /home/cisco/skg"
+  - su - cisco -c "cd /home/cisco/skg && docker compose up -d"
 CLOUDINIT
 )"
 
