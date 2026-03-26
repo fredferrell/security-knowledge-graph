@@ -61,7 +61,7 @@ create_node() {
   data="$data}"
 
   local node_id=$(api POST "/labs/$LAB_ID/nodes" -d "$data" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
-  echo "  Created node: $label ($node_id)"
+  echo "  Created node: $label ($node_id)" >&2
   echo "$node_id"
 }
 
@@ -71,11 +71,11 @@ echo "=== Creating Nodes ==="
 # Edge Router (IOSv)
 EDGE_RTR=$(create_node "edge-rtr" "iosv" "iosv-159-3-m8" -400 0)
 
-# Edge Palo Alto Firewall
-EDGE_FW=$(create_node "edge-fw" "panos10" "PaloAltoFirewallImage" -200 0 4096 2)
+# Edge Firewall (IOSv router — swapped to ASAv after server testing)
+EDGE_FW=$(create_node "edge-fw" "iosv" "iosv-159-3-m8" -200 0)
 
-# Internal Palo Alto Firewall
-INTERNAL_FW=$(create_node "internal-fw" "panos10" "PaloAltoFirewallImage" 0 0 4096 2)
+# Internal Firewall (IOSv router — swapped to ASAv after server testing)
+INTERNAL_FW=$(create_node "internal-fw" "iosv" "iosv-159-3-m8" 0 0)
 
 # Web Server (Ubuntu - DMZ)
 WEB_SRV=$(create_node "web-srv" "ubuntu" "ubuntu-22-04-20240126" -100 -200)
@@ -95,8 +95,8 @@ VULN_VM=$(create_node "vuln-vm" "ubuntu" "ubuntu-22-04-20240126" 300 200)
 # ELK Server (Ubuntu - Management)
 ELK_SRV=$(create_node "elk-srv" "ubuntu" "ubuntu-22-04-20240126" 200 400 8192 2)
 
-# Management VM (Ubuntu - Management)
-MGMT_VM=$(create_node "mgmt-vm" "ubuntu" "ubuntu-22-04-20240126" 400 400)
+# Management VM (Ubuntu - Management) — runs SKG app via Docker
+MGMT_VM=$(create_node "mgmt-vm" "ubuntu" "ubuntu-22-04-20240126" 400 400 4096 2)
 
 # External connector for internet simulation
 EXT_CONN=$(create_node "internet" "external_connector" "" -600 0 0 0 2>/dev/null || true)
@@ -104,42 +104,58 @@ EXT_CONN=$(create_node "internet" "external_connector" "" -600 0 0 0 2>/dev/null
 echo ""
 echo "=== Creating Links ==="
 
-# Helper: create link between two nodes on specific interfaces
+# Helper: ensure physical interfaces exist up to the given slot
+ensure_interface() {
+  local node=$1 slot=$2
+  api POST "/labs/$LAB_ID/interfaces" \
+    -d "{\"node\":\"$node\",\"slot\":$slot}" > /dev/null 2>&1
+}
+
+# Helper: get interface ID by slot number
+get_iface_id() {
+  local node=$1 slot=$2
+  api GET "/labs/$LAB_ID/nodes/$node/interfaces?data=true" | \
+    python3 -c "import sys,json; print(next(i['id'] for i in json.load(sys.stdin) if i.get('slot')==$slot))"
+}
+
+# Helper: create link between two nodes on specific interface slots
 create_link() {
-  local node_a=$1 iface_a=$2 node_b=$3 iface_b=$4 label=${5:-""}
+  local node_a=$1 slot_a=$2 node_b=$3 slot_b=$4 label=${5:-""}
 
-  # Get interface IDs
-  local a_iface_id=$(api GET "/labs/$LAB_ID/nodes/$node_a/interfaces" | \
-    python3 -c "import sys,json; ifaces=json.load(sys.stdin); print(next((k for k,v in ifaces.items() if v.get('slot')==$iface_a), list(ifaces.keys())[$iface_a] if len(ifaces)>$iface_a else 'none'))")
+  # Ensure physical interfaces exist
+  ensure_interface "$node_a" "$slot_a"
+  ensure_interface "$node_b" "$slot_b"
 
-  local b_iface_id=$(api GET "/labs/$LAB_ID/nodes/$node_b/interfaces" | \
-    python3 -c "import sys,json; ifaces=json.load(sys.stdin); print(next((k for k,v in ifaces.items() if v.get('slot')==$iface_b), list(ifaces.keys())[$iface_b] if len(ifaces)>$iface_b else 'none'))")
+  # Get interface UUIDs
+  local src_int=$(get_iface_id "$node_a" "$slot_a")
+  local dst_int=$(get_iface_id "$node_b" "$slot_b")
 
+  # Create the link
   api POST "/labs/$LAB_ID/links" \
-    -d "{\"src_node\":\"$node_a\",\"src_iface\":\"$a_iface_id\",\"dst_node\":\"$node_b\",\"dst_iface\":\"$b_iface_id\"}" > /dev/null 2>&1
+    -d "{\"src_int\":\"$src_int\",\"dst_int\":\"$dst_int\"}" > /dev/null 2>&1
   echo "  Linked: $label"
 }
 
-# Network links matching topology
-# edge-rtr Gi0/1 <-> edge-fw ethernet1/1 (edge-to-fw transit)
+# Network links matching topology (IOSv: Gi0/0=slot0, Gi0/1=slot1, ...)
+# edge-rtr Gi0/1 <-> edge-fw Gi0/0 (edge-to-fw transit)
 create_link "$EDGE_RTR" 1 "$EDGE_FW" 0 "edge-rtr <-> edge-fw"
 
-# edge-fw ethernet1/2 <-> web-srv ens2 (DMZ)
+# edge-fw Gi0/1 <-> web-srv ens2 (DMZ)
 create_link "$EDGE_FW" 1 "$WEB_SRV" 0 "edge-fw <-> web-srv (DMZ)"
 
-# edge-fw ethernet1/3 <-> internal-fw ethernet1/1 (edge-to-internal transit)
+# edge-fw Gi0/2 <-> internal-fw Gi0/0 (edge-to-internal transit)
 create_link "$EDGE_FW" 2 "$INTERNAL_FW" 0 "edge-fw <-> internal-fw"
 
-# internal-fw ethernet1/2 <-> app-srv (app tier)
+# internal-fw Gi0/1 <-> app-srv ens2 (app tier)
 create_link "$INTERNAL_FW" 1 "$APP_SRV" 0 "internal-fw <-> app-srv"
 
-# internal-fw ethernet1/3 <-> db-srv (db tier)
+# internal-fw Gi0/2 <-> db-srv ens2 (db tier)
 create_link "$INTERNAL_FW" 2 "$DB_SRV" 0 "internal-fw <-> db-srv"
 
-# internal-fw ethernet1/4 <-> dns-srv (corporate - needs unmanaged switch for shared segment)
+# internal-fw Gi0/3 <-> corp-sw (corporate zone — shared segment)
 create_link "$INTERNAL_FW" 3 "$DNS_SRV" 0 "internal-fw <-> dns-srv (corporate)"
 
-# internal-fw ethernet1/5 <-> elk-srv (management - needs unmanaged switch for shared segment)
+# internal-fw Gi0/4 <-> mgmt-sw (management zone — shared segment)
 create_link "$INTERNAL_FW" 4 "$ELK_SRV" 0 "internal-fw <-> elk-srv (management)"
 
 # For shared segments (corporate: dns-srv + vuln-vm, management: elk-srv + mgmt-vm)

@@ -92,149 +92,119 @@ end
 EOF
 )"
 
-# ── Edge ASAv ──
+# ── Edge Firewall (IOSv router — swapped to ASAv after testing) ──
 EDGE_FW=$(get_node_id "edge-fw")
 configure_node "$EDGE_FW" "edge-fw" "$(cat <<'EOF'
 hostname edge-fw
-domain-name skg.lab
 !
-interface Management0/0
- shutdown
+ip domain name skg.lab
+ip name-server 10.10.4.10
+!
+username cisco privilege 15 secret cisco
 !
 interface GigabitEthernet0/0
- nameif outside
- security-level 0
+ description Uplink to edge-rtr
  ip address 10.0.0.2 255.255.255.252
  no shutdown
 !
 interface GigabitEthernet0/1
- nameif dmz
- security-level 50
+ description DMZ (web-srv)
  ip address 10.10.1.1 255.255.255.0
  no shutdown
 !
 interface GigabitEthernet0/2
- nameif inside
- security-level 100
+ description Downlink to internal-fw
  ip address 10.0.1.1 255.255.255.252
  no shutdown
 !
-same-security-traffic permit inter-interface
-same-security-traffic permit intra-interface
+ip route 0.0.0.0 0.0.0.0 10.0.0.1
+ip route 10.10.2.0 255.255.255.0 10.0.1.2
+ip route 10.10.3.0 255.255.255.0 10.0.1.2
+ip route 10.10.4.0 255.255.255.0 10.0.1.2
+ip route 10.10.5.0 255.255.255.0 10.0.1.2
 !
-route outside 0.0.0.0 0.0.0.0 10.0.0.1 1
-route inside 10.10.2.0 255.255.255.0 10.0.1.2 1
-route inside 10.10.3.0 255.255.255.0 10.0.1.2 1
-route inside 10.10.4.0 255.255.255.0 10.0.1.2 1
-route inside 10.10.5.0 255.255.255.0 10.0.1.2 1
+ip ssh version 2
 !
-access-list PERMIT-ALL extended permit ip any any
-access-group PERMIT-ALL in interface outside
-access-group PERMIT-ALL in interface dmz
-access-group PERMIT-ALL in interface inside
+line con 0
+ logging synchronous
+line vty 0 4
+ login local
+ transport input ssh
 !
-icmp permit any outside
-icmp permit any dmz
-icmp permit any inside
+event manager applet GENERATE_SSH_KEYS
+ event timer countdown time 90
+ action 1.0 cli command "enable"
+ action 1.1 cli command "configure terminal"
+ action 1.2 cli command "crypto key generate rsa general-keys modulus 2048"
+ action 1.3 cli command "end"
+ action 2.0 cli command "configure terminal"
+ action 2.1 cli command "no event manager applet GENERATE_SSH_KEYS"
+ action 2.2 cli command "end"
+ action 3.0 syslog msg "EEM: SSH RSA keys generated successfully"
 !
-policy-map global_policy
- class inspection_default
-  inspect icmp
-!
-service-policy global_policy global
-!
-dns domain-lookup outside
-dns name-server 10.10.4.10
-!
-username cisco password cisco privilege 15
-enable password cisco
-aaa authentication ssh console LOCAL
-ssh 0.0.0.0 0.0.0.0 outside
-ssh 0.0.0.0 0.0.0.0 inside
-ssh 0.0.0.0 0.0.0.0 dmz
-ssh version 2
-crypto key generate rsa modulus 2048 noconfirm
+end
 EOF
 )"
 
-# ── Internal ASAv ──
+# ── Internal Firewall (IOSv router — swapped to ASAv after testing) ──
 INTERNAL_FW=$(get_node_id "internal-fw")
 configure_node "$INTERNAL_FW" "internal-fw" "$(cat <<'EOF'
 hostname internal-fw
-domain-name skg.lab
 !
-interface Management0/0
- shutdown
+ip domain name skg.lab
+ip name-server 10.10.4.10
+!
+username cisco privilege 15 secret cisco
 !
 interface GigabitEthernet0/0
- nameif edge-facing
- security-level 0
+ description Uplink to edge-fw
  ip address 10.0.1.2 255.255.255.252
  no shutdown
 !
 interface GigabitEthernet0/1
- nameif app
- security-level 50
+ description App tier (app-srv)
  ip address 10.10.2.1 255.255.255.0
  no shutdown
 !
 interface GigabitEthernet0/2
- nameif db
- security-level 50
+ description DB tier (db-srv)
  ip address 10.10.3.1 255.255.255.0
  no shutdown
 !
 interface GigabitEthernet0/3
- nameif corporate
- security-level 50
+ description Corporate (dns-srv, vuln-vm)
  ip address 10.10.4.1 255.255.255.0
  no shutdown
 !
 interface GigabitEthernet0/4
- nameif management
- security-level 100
+ description Management (elk-srv, mgmt-vm)
  ip address 10.10.5.1 255.255.255.0
  no shutdown
 !
-same-security-traffic permit inter-interface
-same-security-traffic permit intra-interface
+ip route 0.0.0.0 0.0.0.0 10.0.1.1
+ip route 10.10.1.0 255.255.255.0 10.0.1.1
+ip route 192.168.10.0 255.255.255.0 10.10.5.20
 !
-route edge-facing 0.0.0.0 0.0.0.0 10.0.1.1 1
-route edge-facing 10.10.1.0 255.255.255.0 10.0.1.1 1
-route management 192.168.10.0 255.255.255.0 10.10.5.20 1
+ip ssh version 2
 !
-access-list PERMIT-ALL extended permit ip any any
-access-group PERMIT-ALL in interface edge-facing
-access-group PERMIT-ALL in interface app
-access-group PERMIT-ALL in interface db
-access-group PERMIT-ALL in interface corporate
-access-group PERMIT-ALL in interface management
+line con 0
+ logging synchronous
+line vty 0 4
+ login local
+ transport input ssh
 !
-icmp permit any edge-facing
-icmp permit any app
-icmp permit any db
-icmp permit any corporate
-icmp permit any management
+event manager applet GENERATE_SSH_KEYS
+ event timer countdown time 90
+ action 1.0 cli command "enable"
+ action 1.1 cli command "configure terminal"
+ action 1.2 cli command "crypto key generate rsa general-keys modulus 2048"
+ action 1.3 cli command "end"
+ action 2.0 cli command "configure terminal"
+ action 2.1 cli command "no event manager applet GENERATE_SSH_KEYS"
+ action 2.2 cli command "end"
+ action 3.0 syslog msg "EEM: SSH RSA keys generated successfully"
 !
-policy-map global_policy
- class inspection_default
-  inspect icmp
-!
-service-policy global_policy global
-!
-dns domain-lookup edge-facing
-dns name-server 10.10.4.10
-!
-username cisco password cisco privilege 15
-enable password cisco
-aaa authentication ssh console LOCAL
-ssh 0.0.0.0 0.0.0.0 edge-facing
-ssh 0.0.0.0 0.0.0.0 app
-ssh 0.0.0.0 0.0.0.0 db
-ssh 0.0.0.0 0.0.0.0 corporate
-ssh 0.0.0.0 0.0.0.0 management
-ssh version 2
-crypto key generate rsa modulus 2048 noconfirm
+end
 EOF
 )"
 
