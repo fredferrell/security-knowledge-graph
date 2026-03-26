@@ -5,6 +5,11 @@
     SSLCertificateFile /etc/ssl/certs/skg-app.crt
     SSLCertificateKeyFile /etc/ssl/private/skg-app.key
 
+    SSLProxyEngine On
+    SSLProxyVerify none
+    SSLProxyCheckPeerCN off
+    SSLProxyCheckPeerName off
+
     ProxyPreserveHost On
     ProxyPass / https://{{ app_server_host }}:{{ app_server_port }}/
     ProxyPassReverse / https://{{ app_server_host }}:{{ app_server_port }}/
