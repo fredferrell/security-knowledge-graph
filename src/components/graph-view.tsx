@@ -104,6 +104,11 @@ export function GraphView({ data, onNodeClick, highlightNodes }: GraphViewProps)
         onNodeClick={handleNodeClick}
         onNodeHover={handleNodeHover}
         onLinkHover={handleLinkHover}
+        onNodeDragEnd={(node: object) => {
+          const n = node as FGNode;
+          n.fx = n.x;
+          n.fy = n.y;
+        }}
       />
     </div>
   );
