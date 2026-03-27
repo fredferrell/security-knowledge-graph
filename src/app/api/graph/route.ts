@@ -52,7 +52,7 @@ async function fetchLinks(
     MATCH (a)-[r]->(b)
     WHERE (a:Asset OR a:Vulnerability OR a:Zone OR a:FirewallRule)
       AND (b:Asset OR b:Vulnerability OR b:Zone OR b:FirewallRule)
-    RETURN r, r.startId AS startId, r.endId AS endId,
+    RETURN r,
            CASE WHEN a:Vulnerability THEN a.cveId ELSE a.name END AS startId,
            CASE WHEN b:Vulnerability THEN b.cveId ELSE b.name END AS endId
   `;
