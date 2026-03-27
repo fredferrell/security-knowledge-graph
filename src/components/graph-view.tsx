@@ -22,6 +22,8 @@ interface FGNode {
   properties: Record<string, unknown>;
   x?: number;
   y?: number;
+  fx?: number;
+  fy?: number;
 }
 
 interface FGLink {
