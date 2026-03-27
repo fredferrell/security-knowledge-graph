@@ -7,9 +7,6 @@ function resolveNodeId(labels: string[], properties: Record<string, unknown>): s
   if (labels.includes('Vulnerability')) {
     return String(properties['cveId'] ?? '');
   }
-  if (labels.includes('SecurityEvent')) {
-    return `${properties['type']}_${properties['sourceIp']}_${properties['timestamp']}`;
-  }
   return String(properties['name'] ?? '');
 }
 
@@ -27,7 +24,7 @@ async function fetchNodes(
 ): Promise<GraphNode[]> {
   const query = `
     MATCH (n)
-    WHERE n:Asset OR n:Vulnerability OR n:Zone OR n:FirewallRule OR n:SecurityEvent
+    WHERE n:Asset OR n:Vulnerability OR n:Zone OR n:FirewallRule
     RETURN n
   `;
   const result = await session.run(query);
@@ -53,15 +50,11 @@ async function fetchLinks(
 ): Promise<GraphLink[]> {
   const query = `
     MATCH (a)-[r]->(b)
-    WHERE (a:Asset OR a:Vulnerability OR a:Zone OR a:FirewallRule OR a:SecurityEvent)
-      AND (b:Asset OR b:Vulnerability OR b:Zone OR b:FirewallRule OR b:SecurityEvent)
+    WHERE (a:Asset OR a:Vulnerability OR a:Zone OR a:FirewallRule)
+      AND (b:Asset OR b:Vulnerability OR b:Zone OR b:FirewallRule)
     RETURN r,
-           CASE WHEN a:Vulnerability THEN a.cveId
-                WHEN a:SecurityEvent THEN a.type + '_' + a.sourceIp + '_' + a.timestamp
-                ELSE a.name END AS startId,
-           CASE WHEN b:Vulnerability THEN b.cveId
-                WHEN b:SecurityEvent THEN b.type + '_' + b.sourceIp + '_' + b.timestamp
-                ELSE b.name END AS endId
+           CASE WHEN a:Vulnerability THEN a.cveId ELSE a.name END AS startId,
+           CASE WHEN b:Vulnerability THEN b.cveId ELSE b.name END AS endId
   `;
   const result = await session.run(query);
   return result.records.map((record) => {
