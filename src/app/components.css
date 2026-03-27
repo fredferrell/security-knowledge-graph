@@ -228,3 +228,19 @@
 .cred-entry { background: #0f172a; border-radius: 4px; padding: 4px; }
 .cred-detail { color: #64748b; font-size: 0.72rem; padding: 4px 8px; }
 .cred-detail p { margin: 2px 0; }
+
+/* ── Graph tooltip ───────────────────────────────────────────────── */
+.graph-tooltip {
+  position: fixed;
+  pointer-events: none;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}

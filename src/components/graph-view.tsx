@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import type { GraphData, GraphNode, GraphLink } from '@/lib/types';
 import { nodeColor, linkColor } from '@/lib/graph-colors';
@@ -37,6 +38,8 @@ function resolveId(endpoint: string | FGNode): string {
 
 /** Interactive 2-D force graph rendering the security knowledge graph. */
 export function GraphView({ data, onNodeClick, highlightNodes }: GraphViewProps) {
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
   const handleNodeClick = (node: object) => {
     onNodeClick(node as GraphNode);
   };
@@ -54,29 +57,54 @@ export function GraphView({ data, onNodeClick, highlightNodes }: GraphViewProps)
     return linkColor(l.type);
   };
 
-  const getNodeLabel = (node: object): string => {
+  const handleNodeHover = useCallback((node: object | null) => {
+    const tip = tooltipRef.current;
+    if (!tip) { return; }
+    if (!node) {
+      tip.style.display = 'none';
+      return;
+    }
     const n = node as FGNode;
-    return `${n.label} (${n.type})`;
-  };
+    const ip = n.properties['ip'] ? ` (${n.properties['ip']})` : '';
+    tip.textContent = `${n.id}${ip} — ${n.label}`;
+    tip.style.display = 'block';
+  }, []);
 
-  const getLinkLabel = (link: object): string => {
+  const handleLinkHover = useCallback((link: object | null) => {
+    const tip = tooltipRef.current;
+    if (!tip) { return; }
+    if (!link) {
+      tip.style.display = 'none';
+      return;
+    }
     const l = link as FGLink;
-    const src = resolveId(l.source);
-    const tgt = resolveId(l.target);
-    return `${l.type}: ${src} → ${tgt}`;
-  };
+    tip.textContent = `${l.type}: ${resolveId(l.source)} → ${resolveId(l.target)}`;
+    tip.style.display = 'block';
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const tip = tooltipRef.current;
+    if (!tip || tip.style.display === 'none') { return; }
+    tip.style.left = `${e.clientX}px`;
+    tip.style.top = `${e.clientY - 40}px`;
+  }, []);
 
   return (
-    <ForceGraph2D
-      graphData={data}
-      backgroundColor="#0f172a"
-      nodeColor={getNodeColor}
-      linkColor={getLinkColor}
-      nodeLabel={getNodeLabel}
-      linkLabel={getLinkLabel}
-      linkDirectionalArrowLength={6}
-      linkDirectionalArrowRelPos={1}
-      onNodeClick={handleNodeClick}
-    />
+    <div onMouseMove={handleMouseMove} style={{ width: '100%', height: '100%' }}>
+      <div ref={tooltipRef} className="graph-tooltip" style={{ display: 'none' }} />
+      <ForceGraph2D
+        graphData={data}
+        backgroundColor="#0f172a"
+        nodeColor={getNodeColor}
+        linkColor={getLinkColor}
+        nodeLabel=""
+        linkLabel=""
+        linkDirectionalArrowLength={6}
+        linkDirectionalArrowRelPos={1}
+        onNodeClick={handleNodeClick}
+        onNodeHover={handleNodeHover}
+        onLinkHover={handleLinkHover}
+      />
+    </div>
   );
 }
