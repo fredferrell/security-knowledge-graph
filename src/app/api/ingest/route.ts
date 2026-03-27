@@ -153,16 +153,26 @@ async function writeToNeo4j(
       const sourceAsset = sourceIp ? IP_TO_ASSET[sourceIp] : null;
       const timestamp = evt['@timestamp'] ?? new Date().toISOString();
 
-      await session.run(
-        `MERGE (e:SecurityEvent {type: $type, sourceIp: $sourceIp, timestamp: $timestamp})
-         SET e.message = $message, e.program = $program
-         WITH e
-         OPTIONAL MATCH (a:Asset {name: $sourceAsset})
-         FOREACH (_ IN CASE WHEN a IS NOT NULL THEN [1] ELSE [] END |
-           MERGE (a)-[:GENERATED]->(e)
-         )`,
-        { type: eventType, sourceIp: sourceIp ?? 'unknown', timestamp, message, program, sourceAsset },
-      );
+      const params: Record<string, unknown> = {
+        type: eventType, sourceIp: sourceIp ?? 'unknown', timestamp, message, program,
+      };
+
+      if (sourceAsset) {
+        await session.run(
+          `MERGE (e:SecurityEvent {type: $type, sourceIp: $sourceIp, timestamp: $timestamp})
+           SET e.message = $message, e.program = $program
+           WITH e
+           MATCH (a:Asset {name: $sourceAsset})
+           MERGE (a)-[:GENERATED]->(e)`,
+          { ...params, sourceAsset },
+        );
+      } else {
+        await session.run(
+          `MERGE (e:SecurityEvent {type: $type, sourceIp: $sourceIp, timestamp: $timestamp})
+           SET e.message = $message, e.program = $program`,
+          params,
+        );
+      }
       securityEvents++;
       if (program === 'sshd') { sshEvents++; }
     }
