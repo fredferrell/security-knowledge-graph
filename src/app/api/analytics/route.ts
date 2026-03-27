@@ -193,14 +193,12 @@ async function fetchDenyRuleAssets(session: SessionLike): Promise<Set<string>> {
 export async function GET(): Promise<NextResponse<AnalyticsResponse>> {
   const session = getSession();
   try {
-    const [vulnData, degrees, credExposure, outboundFlows, inboundFlows, denyRuleAssets] = await Promise.all([
-      fetchVulnData(session),
-      fetchDegrees(session),
-      fetchCredentialExposure(session),
-      fetchOutboundFlows(session),
-      fetchInboundFlows(session),
-      fetchDenyRuleAssets(session),
-    ]);
+    const vulnData = await fetchVulnData(session);
+    const degrees = await fetchDegrees(session);
+    const credExposure = await fetchCredentialExposure(session);
+    const outboundFlows = await fetchOutboundFlows(session);
+    const inboundFlows = await fetchInboundFlows(session);
+    const denyRuleAssets = await fetchDenyRuleAssets(session);
 
     const assets: AssetRisk[] = [];
     for (const [name, vd] of vulnData) {

@@ -73,11 +73,12 @@ async function fetchLinks(
 
 /** GET /api/graph — returns all nodes and relationships as a GraphData object. */
 export async function GET(): Promise<NextResponse<GraphData>> {
-  const session = getSession();
+  const nodeSession = getSession();
+  const linkSession = getSession();
   try {
-    const [nodes, links] = await Promise.all([fetchNodes(session), fetchLinks(session)]);
+    const [nodes, links] = await Promise.all([fetchNodes(nodeSession), fetchLinks(linkSession)]);
     return NextResponse.json({ nodes, links });
   } finally {
-    await session.close();
+    await Promise.all([nodeSession.close(), linkSession.close()]);
   }
 }

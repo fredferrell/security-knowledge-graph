@@ -90,16 +90,16 @@ export async function GET(request: NextRequest): Promise<NextResponse<BlastRadiu
     return NextResponse.json({ error: 'Missing required query param: cve' }, { status: 400 });
   }
 
-  const session = getSession();
+  const sessions = [getSession(), getSession(), getSession()];
   try {
     const [affectedAssets, exposurePaths, firewallRules] = await Promise.all([
-      fetchAffectedAssets(session, cve),
-      fetchExposurePaths(session, cve),
-      fetchFirewallRules(session, cve),
+      fetchAffectedAssets(sessions[0], cve),
+      fetchExposurePaths(sessions[1], cve),
+      fetchFirewallRules(sessions[2], cve),
     ]);
 
     return NextResponse.json({ cve, affectedAssets, exposurePaths, firewallRules });
   } finally {
-    await session.close();
+    await Promise.all(sessions.map((s) => s.close()));
   }
 }

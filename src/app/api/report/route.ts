@@ -176,13 +176,11 @@ function buildRecommendations(vulnMatrix: VulnMatrixEntry[], credentialMap: Cred
 export async function GET(): Promise<NextResponse<ReportResponse>> {
   const session = getSession();
   try {
-    const [rawMatrix, assetVulns, credentialMap, rawZones, exposureMap] = await Promise.all([
-      fetchVulnMatrix(session),
-      fetchAssetVulns(session),
-      fetchCredentials(session),
-      fetchZones(session),
-      fetchInternetExposure(session),
-    ]);
+    const rawMatrix = await fetchVulnMatrix(session);
+    const assetVulns = await fetchAssetVulns(session);
+    const credentialMap = await fetchCredentials(session);
+    const rawZones = await fetchZones(session);
+    const exposureMap = await fetchInternetExposure(session);
 
     const credTargets = new Set(credentialMap.flatMap((c) => c.targets));
     const vulnerabilityMatrix = buildVulnMatrix(rawMatrix, exposureMap);
