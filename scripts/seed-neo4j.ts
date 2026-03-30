@@ -10,7 +10,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import yaml from 'js-yaml';
 import neo4j, { Session } from 'neo4j-driver';
-import { IP_MAP, CVES, TRAFFIC_FLOWS, CREDENTIALS } from './seed-data.js';
+import { IP_MAP, CVES, TRAFFIC_FLOWS, CREDENTIALS, CONNECTIONS } from './seed-data.js';
 
 // ─── Topology types ────────────────────────────────────────────────────────
 
@@ -188,6 +188,23 @@ async function seedTrafficFlows(session: Session): Promise<void> {
   }
 }
 
+async function seedConnections(session: Session): Promise<void> {
+  for (const conn of CONNECTIONS) {
+    await session.run(
+      `MATCH (src:Asset {name: $from}), (dst:Asset {name: $to})
+       MERGE (src)-[c:CONNECTS_TO {zone: $zone}]->(dst)
+       ON CREATE SET c.fromInterface = $fromIf, c.toInterface = $toIf`,
+      {
+        from: conn.from,
+        to: conn.to,
+        zone: conn.zone,
+        fromIf: conn.fromInterface,
+        toIf: conn.toInterface,
+      },
+    );
+  }
+}
+
 async function seedCredentials(session: Session): Promise<void> {
   for (const cred of CREDENTIALS) {
     await session.run(
@@ -258,6 +275,9 @@ async function main(): Promise<void> {
 
     console.log(`Seeding ${TRAFFIC_FLOWS.length} traffic flows...`);
     await seedTrafficFlows(session);
+
+    console.log(`Seeding ${CONNECTIONS.length} network connections...`);
+    await seedConnections(session);
 
     console.log(`Seeding ${CREDENTIALS.length} credential relationships...`);
     await seedCredentials(session);

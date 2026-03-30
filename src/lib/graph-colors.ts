@@ -26,6 +26,7 @@ export function nodeColor(group: string): string {
 export const LINK_COLOR_MAP: Record<string, string> = {
   HAS_VULNERABILITY: '#ef4444',
   TRAFFIC_FLOW: '#22c55e',
+  CONNECTS_TO: '#06b6d4',
   HAS_CREDENTIAL: '#f97316',
   ENFORCES: '#3b82f6',
   default: '#64748b',
@@ -55,6 +56,7 @@ export const NODE_LEGEND: { label: string; color: string }[] = [
 ];
 
 export const LINK_LEGEND: { label: string; color: string }[] = [
+  { label: 'Connects To', color: LINK_COLOR_MAP['CONNECTS_TO'] },
   { label: 'Traffic Flow', color: LINK_COLOR_MAP['TRAFFIC_FLOW'] },
   { label: 'Has Vulnerability', color: LINK_COLOR_MAP['HAS_VULNERABILITY'] },
   { label: 'Has Credential', color: LINK_COLOR_MAP['HAS_CREDENTIAL'] },

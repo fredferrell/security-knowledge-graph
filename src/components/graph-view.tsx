@@ -80,7 +80,8 @@ export function GraphView({ data, onNodeClick, highlightNodes }: GraphViewProps)
       return;
     }
     const l = link as FGLink;
-    tip.textContent = `${l.type}: ${resolveId(l.source)} → ${resolveId(l.target)}`;
+    const zone = l.properties['zone'] ? ` [${l.properties['zone']}]` : '';
+    tip.textContent = `${l.type}: ${resolveId(l.source)} → ${resolveId(l.target)}${zone}`;
     tip.style.display = 'block';
   }, []);
 

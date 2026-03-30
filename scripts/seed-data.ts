@@ -95,6 +95,27 @@ export const TRAFFIC_FLOWS: TrafficFlowDefinition[] = [
   { source: 'mgmt-vm', dest: 'elk-srv', port: 514, protocol: 'UDP', bytesTotal: 75_000 },
 ];
 
+/** Physical connections between network devices with zone context. */
+export interface ConnectionDefinition {
+  from: string;
+  to: string;
+  fromInterface: string;
+  toInterface: string;
+  zone: string;
+}
+
+export const CONNECTIONS: ConnectionDefinition[] = [
+  { from: 'edge-rtr', to: 'edge-fw', fromInterface: 'Gi0/1', toInterface: 'Gi0/0', zone: 'outside' },
+  { from: 'edge-fw', to: 'web-srv', fromInterface: 'Gi0/1', toInterface: 'ens2', zone: 'dmz' },
+  { from: 'edge-fw', to: 'internal-fw', fromInterface: 'Gi0/2', toInterface: 'Gi0/0', zone: 'inside' },
+  { from: 'internal-fw', to: 'app-srv', fromInterface: 'Gi0/1', toInterface: 'ens2', zone: 'app-tier' },
+  { from: 'internal-fw', to: 'db-srv', fromInterface: 'Gi0/2', toInterface: 'ens2', zone: 'db-tier' },
+  { from: 'internal-fw', to: 'dns-srv', fromInterface: 'Gi0/3', toInterface: 'ens2', zone: 'corporate' },
+  { from: 'internal-fw', to: 'vuln-vm', fromInterface: 'Gi0/3', toInterface: 'ens2', zone: 'corporate' },
+  { from: 'internal-fw', to: 'elk-srv', fromInterface: 'Gi0/4', toInterface: 'ens2', zone: 'management' },
+  { from: 'internal-fw', to: 'mgmt-vm', fromInterface: 'Gi0/4', toInterface: 'ens2', zone: 'management' },
+];
+
 /** 9 credential relationships. */
 export const CREDENTIALS: CredentialDefinition[] = [
   { from: 'mgmt-vm', to: 'web-srv', credentialType: 'SSH key' },

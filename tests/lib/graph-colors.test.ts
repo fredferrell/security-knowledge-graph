@@ -42,7 +42,8 @@ describe('linkColor', () => {
   });
 
   it('returns the default color for unknown relationship types', () => {
-    expect(linkColor('CONNECTS_TO')).toBe(LINK_COLOR_MAP['default']);
+    expect(linkColor('CONNECTS_TO')).toBe(LINK_COLOR_MAP['CONNECTS_TO']);
+    expect(linkColor('UNKNOWN_TYPE')).toBe(LINK_COLOR_MAP['default']);
     expect(linkColor('')).toBe(LINK_COLOR_MAP['default']);
   });
 });
