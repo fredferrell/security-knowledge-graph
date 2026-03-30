@@ -229,6 +229,27 @@
 .cred-detail { color: #64748b; font-size: 0.72rem; padding: 4px 8px; }
 .cred-detail p { margin: 2px 0; }
 
+/* ── Graph legend ────────────────────────────────────────────────── */
+.graph-legend {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 12px 16px;
+  z-index: 100;
+  display: flex;
+  gap: 24px;
+  pointer-events: auto;
+}
+.legend-section { display: flex; flex-direction: column; gap: 4px; }
+.legend-title { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.legend-item { display: flex; align-items: center; gap: 8px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.legend-line { width: 16px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+.legend-label { font-size: 12px; color: #cbd5e1; white-space: nowrap; }
+
 /* ── Graph tooltip ───────────────────────────────────────────────── */
 .graph-tooltip {
   position: fixed;

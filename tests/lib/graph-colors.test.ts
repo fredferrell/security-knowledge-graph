@@ -5,7 +5,11 @@ describe('nodeColor', () => {
   it('returns the correct color for known zone groups', () => {
     expect(nodeColor('dmz')).toBe(COLOR_MAP['dmz']);
     expect(nodeColor('internal')).toBe(COLOR_MAP['internal']);
-    expect(nodeColor('external')).toBe(COLOR_MAP['external']);
+    expect(nodeColor('internet-edge')).toBe(COLOR_MAP['internet-edge']);
+    expect(nodeColor('edge')).toBe(COLOR_MAP['edge']);
+    expect(nodeColor('app-tier')).toBe(COLOR_MAP['app-tier']);
+    expect(nodeColor('db-tier')).toBe(COLOR_MAP['db-tier']);
+    expect(nodeColor('corporate')).toBe(COLOR_MAP['corporate']);
     expect(nodeColor('management')).toBe(COLOR_MAP['management']);
   });
 

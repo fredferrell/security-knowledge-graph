@@ -3,7 +3,7 @@
 import { useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import type { GraphData, GraphNode, GraphLink } from '@/lib/types';
-import { nodeColor, linkColor } from '@/lib/graph-colors';
+import { nodeColor, linkColor, NODE_LEGEND, LINK_LEGEND } from '@/lib/graph-colors';
 
 // react-force-graph-2d uses canvas APIs — must be imported without SSR.
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
@@ -94,6 +94,26 @@ export function GraphView({ data, onNodeClick, highlightNodes }: GraphViewProps)
   return (
     <div onMouseMove={handleMouseMove} style={{ width: '100%', height: '100%' }}>
       <div ref={tooltipRef} className="graph-tooltip" style={{ display: 'none' }} />
+      <div className="graph-legend">
+        <div className="legend-section">
+          <div className="legend-title">Nodes</div>
+          {NODE_LEGEND.map((item) => (
+            <div key={item.label} className="legend-item">
+              <span className="legend-dot" style={{ backgroundColor: item.color }} />
+              <span className="legend-label">{item.label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="legend-section">
+          <div className="legend-title">Links</div>
+          {LINK_LEGEND.map((item) => (
+            <div key={item.label} className="legend-item">
+              <span className="legend-line" style={{ backgroundColor: item.color }} />
+              <span className="legend-label">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
       <ForceGraph2D
         graphData={data}
         backgroundColor="#0f172a"
